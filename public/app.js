@@ -217,12 +217,16 @@
 
   const generateRequestId = async () => {
     const cryptoObj = globalThis.crypto;
-    if (!cryptoObj?.getRandomValues || !cryptoObj?.subtle) {
-      throw new Error("Secure crypto is not available in this browser.");
+    if (cryptoObj?.getRandomValues && cryptoObj?.subtle) {
+      const payload = new Uint8Array(REQUEST_ID_BYTES);
+      cryptoObj.getRandomValues(payload);
+      return base58CheckEncode(I_ADDR_VERSION, payload);
     }
-    const payload = new Uint8Array(REQUEST_ID_BYTES);
-    cryptoObj.getRandomValues(payload);
-    return base58CheckEncode(I_ADDR_VERSION, payload);
+    // Fallback: ask the server to generate the request ID
+    const resp = await fetch("api/generate-request-id");
+    if (!resp.ok) throw new Error("Failed to generate request ID from server.");
+    const data = await resp.json();
+    return data.requestId;
   };
 
   const setupRequestIdGenerator = (inputEl, buttonEl, statusEl, errorEl) => {
@@ -2184,6 +2188,26 @@
           if (datahashInput && data.pastebinHash) {
             datahashInput.value = data.pastebinHash;
           }
+
+          // Auto-store attestation hex on server and populate download URL
+          if (data.pastebinHex && downloadUrlInput) {
+            try {
+              if (attestationStatus) setStatus(attestationStatus, "Storing attestation data...");
+              const storeResp = await fetch("api/store-attestation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ hex: data.pastebinHex })
+              });
+              const storeData = await storeResp.json().catch(() => ({}));
+              if (storeResp.ok && storeData.id) {
+                // Build the download URL using the <base href> so it works behind reverse proxies
+                downloadUrlInput.value = new URL("attestation/" + storeData.id, document.baseURI).href;
+              }
+            } catch (storeErr) {
+              console.error("Failed to auto-store attestation:", storeErr);
+            }
+          }
+
           if (pastebinDataSection) {
             pastebinDataSection.hidden = false;
           }
@@ -2260,7 +2284,10 @@
         }
         resultEl.hidden = false;
 
-        setStatus(statusEl, "QR generated.");
+        const verifiedMsg = data.deeplinkVerified
+          ? "QR generated. Deeplink round-trip verified."
+          : "QR generated. Warning: deeplink verification not confirmed.";
+        setStatus(statusEl, verifiedMsg);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unexpected error.";
         showError(errorEl, message);
