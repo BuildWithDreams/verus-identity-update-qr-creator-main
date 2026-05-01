@@ -30,6 +30,9 @@
           <button class="tab-button" type="button" data-tab="update" aria-pressed="true">
             Update Identity
           </button>
+          <button class="tab-button" type="button" data-tab="service-signer" aria-pressed="false">
+            Service signer
+          </button>
           <button class="tab-button" type="button" data-tab="auth" aria-pressed="false">
             Authentication
           </button>
@@ -52,6 +55,7 @@
       </header>
 
       <%- include('./tabs/update/panel') %>
+      <%- include('./tabs/service-signer/panel') %>
       <%- include('./tabs/auth/panel') %>
       <%- include('./tabs/invoice/panel') %>
       <%- include('./tabs/app-encryption/panel') %>

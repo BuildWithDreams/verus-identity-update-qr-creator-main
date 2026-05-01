@@ -1,0 +1,98 @@
+<section class="tab-panel" data-tab-panel="service-signer" hidden>
+  <div class="split-layout">
+    <div class="split-inputs">
+      <form id="service-signer-form">
+        <section class="card">
+          <h2>Service signer update request</h2>
+
+          <label>
+            Target identity
+            <input id="service-target-identity" name="targetIdentity" type="text" placeholder="e.g. player7@ or iJ..." />
+            <span class="help">The identity your mobile wallet controls and will consent for.</span>
+          </label>
+
+          <label>
+            Request ID <span class="tag optional">optional</span>
+            <div class="input-with-action">
+              <input id="service-request-id" name="requestId" type="text" placeholder="e.g. iJitWFN8PY37GrBVtF38HyftG8WohWipbL" />
+              <button id="service-request-id-generate" type="button">Generate</button>
+            </div>
+            <span class="help">Unique i-address for tracking this request.</span>
+          </label>
+
+          <label>
+            Identity changes JSON <span class="tag optional">optional</span>
+            <textarea id="service-identity-changes" name="identityChanges" rows="5">{}</textarea>
+            <span class="help">Optional extra fields (revocationauthority, primaryaddresses, etc). Name and parent are resolved from target identity.</span>
+          </label>
+
+          <label>
+            Redirects JSON <span class="tag optional">optional</span>
+            <textarea id="service-redirects" name="redirects" rows="4">[]</textarea>
+            <span class="help">Array of redirect objects. Type "1" = redirect, "2" = POST callback.</span>
+          </label>
+        </section>
+
+        <section class="card">
+          <h2>Content Multi-Map (FQN outer keys)</h2>
+          <p class="hint small">
+            Use fully-qualified namespace keys (for example <strong>testidx.vrsctest::proof.basic</strong>) as outer keys.
+          </p>
+          <label>
+            Content multimap JSON
+            <textarea id="service-contentmultimap" name="contentmultimap" rows="12">{
+"testidx.vrsctest::proof.basic": [
+  {
+    "i4GC1YGEVD21afWudGoFJVdnfjJ5XWnCQv": {
+      "version": 1,
+      "label": "iPRekBwQwFxNHf6mE68n8i2iXEnVdk1hw8",
+      "mimetype": "text/plain",
+      "objectdata": {
+        "message": "demo-proof-hash-or-payload"
+      }
+    }
+  }
+]
+}</textarea>
+          </label>
+        </section>
+
+        <div class="actions">
+          <button id="service-submit-button" type="submit">Generate QR</button>
+          <span id="service-status" class="status" aria-live="polite"></span>
+        </div>
+        <div id="service-error" class="error" hidden></div>
+      </form>
+
+      <section id="service-result" class="card" hidden>
+        <h2>Result</h2>
+        <div class="result-grid">
+          <div class="qr-wrapper">
+            <img id="service-qr-image" alt="QR Code" />
+          </div>
+          <div class="result-details">
+            <label>
+              Request ID
+              <input id="service-result-request-id" type="text" readonly />
+            </label>
+            <label>
+              Completion TXID
+              <input id="service-result-txid" type="text" readonly placeholder="Pending wallet approval" />
+            </label>
+            <label>
+              Last callback payload (debug)
+              <textarea id="service-result-callback-payload" rows="6" readonly placeholder="No callback payload received yet"></textarea>
+            </label>
+            <label>
+              Deeplink URI
+              <textarea id="service-deeplink" rows="6" readonly></textarea>
+            </label>
+            <button id="service-copy-button" type="button">Copy deeplink</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <%- include('./reference') %>
+  </div>
+</section>

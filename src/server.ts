@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 import express = require("express");
 import { VerusIdInterface, primitives } from "verusid-ts-client";
-import { generateQr, generateAuthQr, generateInvoiceQr, generateAppEncryptionQr, generateDataPacketQr, signDataPacket, fetchAndHashUrl, listZAddresses, createAttestation, generateUserDataQr, createAttestationForTab, signAttestationPacket, generateAttestationQr } from "./routes";
+import { generateQr, generateServiceSignerQr, serviceSignerCallback, serviceSignerCallbackRedirect, serviceSignerStatus, generateAuthQr, generateInvoiceQr, generateAppEncryptionQr, generateDataPacketQr, signDataPacket, fetchAndHashUrl, listZAddresses, createAttestation, generateUserDataQr, createAttestationForTab, signAttestationPacket, generateAttestationQr } from "./routes";
 import {
   SYSTEM_ID_TESTNET,
   requireString,
@@ -282,6 +282,10 @@ app.get("/api/generate-request-id", (_req, res) => {
 });
 
 app.post("/api/generate-qr", generateQr);
+app.post("/api/generate-service-signer-qr", generateServiceSignerQr);
+app.post("/api/service-signer/callback", serviceSignerCallback);
+app.get("/api/service-signer/callback", serviceSignerCallbackRedirect);
+app.get("/api/service-signer/status", serviceSignerStatus);
 app.post("/api/generate-auth-qr", generateAuthQr);
 app.post("/api/generate-invoice-qr", generateInvoiceQr);
 app.post("/api/generate-app-encryption-qr", generateAppEncryptionQr);

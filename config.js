@@ -41,6 +41,11 @@ const conf = {
 
   // The ID you want to sign the request with (taken from your currently running wallet)
   SIGNING_ID: "iJitWFN8PY37GrBVtF38HyftG8WohWipbL",
+
+  // Service signer workflow (new "Service signer" tab)
+  // This signer signs the GenericRequest envelope; the mobile wallet user still consents/signs the updateidentity.
+  SERVICE_SIGNER_IADDRESS: "",
+  SERVICE_SIGNER_WIF: "",
 }
 
 module.exports = conf

@@ -1,0 +1,82 @@
+<aside class="split-reference">
+  <div class="ref-card">
+    <h3>Workflow</h3>
+    <p class="ref-desc">This tab builds an IdentityUpdate request for a target identity, signs the GenericRequest with the configured service signer, and returns a QR for the mobile wallet user to approve.</p>
+  </div>
+
+  <div class="ref-card">
+    <h3>Target Identity</h3>
+    <p class="ref-desc">Use the wallet-controlled identity that should receive the contentmultimap update.</p>
+    <div class="ref-snippet">
+      <code>player7@</code>
+      <button class="copy-btn" type="button" data-copy="player7@" title="Copy">Copy</button>
+    </div>
+  </div>
+
+  <div class="ref-card">
+    <h3>FQN Outer Keys</h3>
+    <p class="ref-desc">Use fully-qualified namespaced outer keys for custom content.</p>
+    <div class="ref-snippet">
+      <code>testidx.vrsctest::proof.basic</code>
+      <button class="copy-btn" type="button" data-copy="testidx.vrsctest::proof.basic" title="Copy">Copy</button>
+    </div>
+    <div class="ref-snippet" style="margin-top:6px;">
+      <code>vtimestamp.vrsc::proof.basic</code>
+      <button class="copy-btn" type="button" data-copy="vtimestamp.vrsc::proof.basic" title="Copy">Copy</button>
+    </div>
+  </div>
+
+  <div class="ref-card">
+    <h3>Content Multi-Map JSON</h3>
+    <p class="ref-desc">Example using FQN outer key and DataDescriptor wrapper key.</p>
+    <div class="ref-snippet">
+<pre><code>{
+"testidx.vrsctest::proof.basic": [
+  {
+    "i4GC1YGEVD21afWudGoFJVdnfjJ5XWnCQv": {
+      "version": 1,
+      "label": "iPRekBwQwFxNHf6mE68n8i2iXEnVdk1hw8",
+      "mimetype": "text/plain",
+      "objectdata": {
+        "message": "a7f3b2c1d4e5..."
+      }
+    }
+  }
+]
+}</code></pre>
+      <button class="copy-btn" type="button" data-copy='{"testidx.vrsctest::proof.basic":[{"i4GC1YGEVD21afWudGoFJVdnfjJ5XWnCQv":{"version":1,"label":"iPRekBwQwFxNHf6mE68n8i2iXEnVdk1hw8","mimetype":"text/plain","objectdata":{"message":"a7f3b2c1d4e5..."}}}]}' title="Copy">Copy</button>
+    </div>
+  </div>
+
+  <div class="ref-card">
+    <h3>Identity Changes JSON</h3>
+    <p class="ref-desc">Optional additional changes merged with resolved target name/parent.</p>
+    <div class="ref-snippet">
+<pre><code>{
+"revocationauthority": "iJitWFN8PY37GrBVtF38HyftG8WohWipbL",
+"recoveryauthority": "iD4CrjbJBZmwEZQ4bCWgbHx9tBHGP9mdSQ"
+}</code></pre>
+      <button class="copy-btn" type="button" data-copy='{"revocationauthority":"iJitWFN8PY37GrBVtF38HyftG8WohWipbL","recoveryauthority":"iD4CrjbJBZmwEZQ4bCWgbHx9tBHGP9mdSQ"}' title="Copy">Copy</button>
+    </div>
+  </div>
+
+  <div class="ref-card">
+    <h3>Redirects JSON</h3>
+    <p class="ref-desc">Type <strong>"1"</strong> = redirect, <strong>"2"</strong> = POST callback.</p>
+    <div class="ref-snippet">
+<pre><code>[
+  { "type": "1", "uri": "https://example.com/complete" },
+  { "type": "2", "uri": "https://example.com/api/callback" }
+]</code></pre>
+      <button class="copy-btn" type="button" data-copy='[{"type":"1","uri":"https://example.com/complete"},{"type":"2","uri":"https://example.com/api/callback"}]' title="Copy">Copy</button>
+    </div>
+    <p class="ref-desc" style="margin-top:8px;">If you omit redirects, this tab auto-appends a type "1" callback URI:</p>
+    <div class="ref-snippet">
+      <code>/api/service-signer/callback?requestId=&lt;i-address&gt;</code>
+    </div>
+    <p class="ref-desc" style="margin-top:8px;">Poll completion status:</p>
+    <div class="ref-snippet">
+      <code>/api/service-signer/status?requestId=&lt;i-address&gt;</code>
+    </div>
+  </div>
+</aside>

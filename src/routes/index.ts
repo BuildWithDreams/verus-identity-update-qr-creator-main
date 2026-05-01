@@ -1,4 +1,5 @@
 export { generateQr } from "./requests/updateIdentity";
+export { generateServiceSignerQr, serviceSignerCallback, serviceSignerCallbackRedirect, serviceSignerStatus } from "./requests/serviceSigner";
 export { generateAuthQr } from "./requests/authentication";
 export { generateInvoiceQr } from "./requests/invoice";
 export { generateAppEncryptionQr } from "./requests/encryption";

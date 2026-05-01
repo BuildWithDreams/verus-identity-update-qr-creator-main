@@ -12,7 +12,9 @@ const {
   RPC_HOST,
   RPC_PORT,
   RPC_USER,
-  RPC_PASSWORD
+  RPC_PASSWORD,
+  SERVICE_SIGNER_WIF,
+  SERVICE_SIGNER_IADDRESS
 } = require("../../config.js");
 
 export const SYSTEM_ID_TESTNET = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq";
@@ -226,4 +228,11 @@ export function getRpcConfig() {
   const isTestnet = rpcPort === 18843;
 
   return { rpcHost, rpcPort, rpcUser, rpcPassword, isTestnet };
+}
+
+export function getServiceSignerConfig() {
+  const serviceSignerWif = requireString(SERVICE_SIGNER_WIF, "SERVICE_SIGNER_WIF");
+  const serviceSignerIAddress = requireString(SERVICE_SIGNER_IADDRESS, "SERVICE_SIGNER_IADDRESS");
+
+  return { serviceSignerWif, serviceSignerIAddress };
 }

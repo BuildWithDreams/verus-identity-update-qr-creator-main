@@ -602,6 +602,188 @@
     });
   };
 
+  // ── Service Signer Form ─────────────────────────────────────────────
+
+  const setupServiceSignerForm = () => {
+    const form = document.getElementById("service-signer-form");
+    const statusEl = document.getElementById("service-status");
+    const errorEl = document.getElementById("service-error");
+    const resultEl = document.getElementById("service-result");
+    const qrImage = document.getElementById("service-qr-image");
+    const deeplinkEl = document.getElementById("service-deeplink");
+    const copyButton = document.getElementById("service-copy-button");
+    const submitButton = document.getElementById("service-submit-button");
+    const requestIdInput = document.getElementById("service-request-id");
+    const requestIdGenerateButton = document.getElementById("service-request-id-generate");
+    const resultRequestIdEl = document.getElementById("service-result-request-id");
+    const resultTxidEl = document.getElementById("service-result-txid");
+    const resultCallbackPayloadEl = document.getElementById("service-result-callback-payload");
+
+    let pollingInterval = null;
+
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+
+    const startPolling = (requestId) => {
+      stopPolling();
+      if (!requestId) return;
+
+      pollingInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`api/service-signer/status?requestId=${encodeURIComponent(requestId)}`);
+          if (!response.ok) return;
+
+          const data = await response.json();
+          if (resultCallbackPayloadEl) {
+            if (data.lastCallbackPayload) {
+              resultCallbackPayloadEl.value = JSON.stringify(data.lastCallbackPayload, null, 2);
+            } else {
+              resultCallbackPayloadEl.value = "";
+              resultCallbackPayloadEl.placeholder = "No callback payload received yet";
+            }
+          }
+
+          if (data.status === "completed" && data.txid) {
+            if (resultTxidEl) {
+              resultTxidEl.value = data.txid;
+            }
+            setStatus(statusEl, "Completed. Wallet callback received.");
+            stopPolling();
+            return;
+          }
+
+          if (data.status === "expired") {
+            setStatus(statusEl, "Request expired before callback was received.");
+            stopPolling();
+          }
+        } catch {
+          // Ignore polling errors and continue polling.
+        }
+      }, 2000);
+    };
+
+    if (
+      !form ||
+      !statusEl ||
+      !errorEl ||
+      !resultEl ||
+      !qrImage ||
+      !deeplinkEl ||
+      !copyButton ||
+      !submitButton
+    ) {
+      return;
+    }
+
+    setupRequestIdGenerator(requestIdInput, requestIdGenerateButton, statusEl, errorEl);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearError(errorEl);
+      resultEl.hidden = true;
+      setStatus(statusEl, "Generating QR code...");
+      submitButton.disabled = true;
+      stopPolling();
+
+      try {
+        const targetIdentity = getInputValue("service-target-identity").trim();
+        if (!targetIdentity) {
+          throw new Error("Target identity is required.");
+        }
+
+        const requestId = getInputValue("service-request-id").trim();
+        const contentmultimap = parseJsonField(
+          getInputValue("service-contentmultimap"),
+          "Content multimap JSON",
+          true
+        );
+
+        if (!contentmultimap || typeof contentmultimap !== "object" || Array.isArray(contentmultimap)) {
+          throw new Error("Content multimap JSON must be an object.");
+        }
+
+        const identityChanges = parseJsonField(
+          getInputValue("service-identity-changes"),
+          "Identity changes JSON",
+          false
+        ) || {};
+
+        if (!identityChanges || typeof identityChanges !== "object" || Array.isArray(identityChanges)) {
+          throw new Error("Identity changes JSON must be an object.");
+        }
+
+        const redirects = parseJsonField(
+          getInputValue("service-redirects"),
+          "Redirects JSON",
+          false
+        );
+
+        const payload = {
+          targetIdentity,
+          requestId: requestId || undefined,
+          contentmultimap,
+          identityChanges,
+          redirects
+        };
+
+        const response = await fetch("api/generate-service-signer-qr", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to generate QR.");
+        }
+
+        qrImage.src = data.qrDataUrl;
+        qrImage.alt = "QR Code for request";
+        deeplinkEl.value = data.deeplink;
+        if (resultRequestIdEl) {
+          resultRequestIdEl.value = data.requestId || "";
+        }
+        if (resultTxidEl) {
+          resultTxidEl.value = "";
+          resultTxidEl.placeholder = "Pending wallet approval";
+        }
+        if (resultCallbackPayloadEl) {
+          resultCallbackPayloadEl.value = "";
+          resultCallbackPayloadEl.placeholder = "No callback payload received yet";
+        }
+        resultEl.hidden = false;
+        setStatus(statusEl, "QR generated. Waiting for wallet callback...");
+
+        if (data.requestId) {
+          startPolling(data.requestId);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unexpected error.";
+        showError(errorEl, message);
+        setStatus(statusEl, "");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    copyButton.addEventListener("click", async () => {
+      if (!deeplinkEl.value) return;
+      try {
+        await navigator.clipboard.writeText(deeplinkEl.value);
+        setStatus(statusEl, "Deeplink copied.");
+        setTimeout(() => setStatus(statusEl, ""), 2000);
+      } catch (error) {
+        setStatus(statusEl, "Copy failed. Select and copy manually.");
+      }
+    });
+  };
+
   // ── Authentication Form ──────────────────────────────────────────────
 
   const setupAuthForm = () => {
@@ -2345,6 +2527,7 @@
 
   setupTabs();
   setupUpdateForm();
+  setupServiceSignerForm();
   setupAuthForm();
   setupInvoiceForm();
   setupAppEncryptionForm();

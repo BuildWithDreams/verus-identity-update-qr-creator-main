@@ -30,6 +30,10 @@ RPC_HOST: "127.0.0.1",
 RPC_PORT: 18843,
 RPC_USER: "your-rpc-user",
 RPC_PASSWORD: "your-rpc-password",
+
+// Required for the Service signer tab
+SERVICE_SIGNER_IADDRESS: "your-service-signer-i-address",
+SERVICE_SIGNER_WIF: "your-service-signer-wif",
 ```
 
 ## Usage
@@ -45,6 +49,7 @@ This will start the server (default port 3000). Open your browser to `http://loc
 ### Available Tabs
 
 - **Update Identity** - Configure identity changes and generate update requests
+- **Service signer** - Build target-identity update requests signed by a configured service signer
 - **Authentication** - Create authentication challenge requests
 - **Invoice** - Generate payment invoice QR codes
 - **App Encryption** - Create app encryption requests
@@ -66,6 +71,16 @@ This will start the server (default port 3000). Open your browser to `http://loc
 4. The request is signed using the specified signing identity via the Verus daemon
 5. The signed request is encoded as a wallet deeplink URI
 6. The URI is displayed as a QR code for Verus Mobile to scan
+
+### Service Signer Callback Tracking
+
+The Service signer tab now exposes callback and status endpoints:
+
+- `GET /api/service-signer/callback?requestId=<i-address>` (wallet redirect callback)
+- `POST /api/service-signer/callback?requestId=<i-address>` (programmatic callback)
+- `GET /api/service-signer/status?requestId=<i-address>` (poll request status)
+
+If no redirects are provided, the service signer request automatically includes a type `"1"` redirect to `/api/service-signer/callback` with the generated `requestId`.
 
 ## CLI Mode
 
