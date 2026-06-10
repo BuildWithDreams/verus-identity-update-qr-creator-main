@@ -21,8 +21,13 @@ import {
   buildGenericRequestFromDetails,
   signRequest,
   getRpcConfig,
-  SYSTEM_ID_TESTNET
+  SYSTEM_ID_TESTNET,
+  SYSTEM_ID_MAINNET
 } from "../utils";
+
+const {
+  RPC_PORT
+} = require("../../../config.js");
 
 type GenerateAppEncryptionQrPayload = {
   signingId?: string;
@@ -146,7 +151,7 @@ function buildAppEncryptionRequest(params: {
   }
   const systemConstraint = new RecipientConstraint({
     type: RecipientConstraint.REQUIRED_SYSTEM,
-    identity: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET)
+    identity: CompactIAddressObject.fromAddress(RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET)
   });
   const authDetails = new AuthenticationRequestDetails({
     requestID: authRequestID,
@@ -208,7 +213,7 @@ export async function generateAppEncryptionQr(req: Request, res: Response): Prom
 
         // verifyGenericRequest
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       {
         auth: {

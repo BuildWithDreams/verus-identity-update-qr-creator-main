@@ -56,7 +56,9 @@ async function main() {
   })
 
   req.setSigned()
-  req.setIsTestnet()
+  if (RPC_PORT === 18843) {
+    req.setIsTestnet()
+  }
 
   const rawHash = req.getRawDataSha256(false);
 

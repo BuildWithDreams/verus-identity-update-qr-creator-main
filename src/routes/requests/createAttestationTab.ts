@@ -32,8 +32,13 @@ import {
   buildGenericRequestFromDetails,
   signRequest,
   getRpcConfig,
-  SYSTEM_ID_TESTNET
+  SYSTEM_ID_TESTNET,
+  SYSTEM_ID_MAINNET,
 } from "../utils";
+
+const {
+  RPC_PORT
+} = require("../../../config.js");
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -216,7 +221,7 @@ export async function createAttestationForTab(req: Request, res: Response): Prom
     });
 
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       { auth: { username: rpcUser, password: rpcPassword } }
     );
@@ -327,7 +332,7 @@ export async function signAttestationPacket(req: Request, res: Response): Promis
     const messageHex = details.toBuffer().toString("hex");
 
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       { auth: { username: rpcUser, password: rpcPassword } }
     );
@@ -348,7 +353,7 @@ export async function signAttestationPacket(req: Request, res: Response): Promis
     }
 
     const verifiableSignature = VerifiableSignatureData.fromCLIJson(result as any);
-    verifiableSignature.systemID = CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET);
+    verifiableSignature.systemID = CompactIAddressObject.fromAddress(RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET);
     verifiableSignature.setHasSystem();
     const signatureJson = verifiableSignature.toJson();
 
@@ -426,7 +431,7 @@ export async function generateAttestationQr(req: Request, res: Response): Promis
 
     // Verify
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       { auth: { username: rpcUser, password: rpcPassword } }
     );
