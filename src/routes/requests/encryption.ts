@@ -78,7 +78,7 @@ function parseOptionalIAddress(value: unknown, fieldName: string): CompactIAddre
       version: CompactAddressObject.DEFAULT_VERSION,
       type: CompactAddressObject.TYPE_FQN,
       address: trimmed,
-      rootSystemName: "VRSCTEST"
+      rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
     });
   }
 
@@ -93,7 +93,7 @@ function parseOptionalIAddress(value: unknown, fieldName: string): CompactIAddre
     version: CompactAddressObject.DEFAULT_VERSION,
     type: CompactAddressObject.TYPE_I_ADDRESS,
     address: trimmed,
-    rootSystemName: "VRSCTEST"
+    rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
   });
 }
 
@@ -143,7 +143,7 @@ function buildAppEncryptionRequest(params: {
         version: CompactAddressObject.DEFAULT_VERSION,
         type: CompactAddressObject.TYPE_FQN,
         address: params.signingId,
-        rootSystemName: "VRSCTEST"
+        rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
       });
     } else {
       authRequestID = CompactIAddressObject.fromAddress(params.signingId);
@@ -165,7 +165,8 @@ function buildAppEncryptionRequest(params: {
     ],
     signed: true,
     signingId: params.signingId,
-    redirects: params.redirects
+    redirects: params.redirects,
+    requestId: params.requestId
   }, params.isTestnet ?? false);
 }
 

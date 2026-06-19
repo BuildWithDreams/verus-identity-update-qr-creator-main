@@ -138,6 +138,7 @@ export function buildGenericRequestFromDetails(params: {
   signed: boolean;
   signingId?: string;
   redirects?: RedirectInput[];
+  requestId?: CompactIAddressObject;
 }, isTestnet: boolean ): primitives.GenericRequest {
   const responseURIs = buildResponseUris(params.redirects);
 
@@ -145,7 +146,8 @@ export function buildGenericRequestFromDetails(params: {
     details: params.details,
     createdAt: new BN((Date.now() / 1000).toFixed(0)),
     responseURIs,
-    flags: isTestnet ? primitives.GenericRequest.FLAG_IS_TESTNET : primitives.GenericRequest.BASE_FLAGS
+    flags: isTestnet ? primitives.GenericRequest.FLAG_IS_TESTNET : primitives.GenericRequest.BASE_FLAGS,
+    requestID: params?.requestId 
   });
 
   if (params.signed) {
