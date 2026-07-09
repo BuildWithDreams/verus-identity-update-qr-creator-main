@@ -8,6 +8,12 @@ const {
 } = require('verus-typescript-primitives');
 
 const mockSignGenericRequest = jest.fn(async (request) => request);
+const mockGetSignatureInfo = jest.fn(async () => ({
+  version: 1,
+  hashtype: 1,
+  height: 1
+}));
+const mockVerifyHash = jest.fn(async () => true);
 
 jest.mock('verusid-ts-client', () => {
   const actual = jest.requireActual('verusid-ts-client');
@@ -19,6 +25,14 @@ jest.mock('verusid-ts-client', () => {
 
     async signGenericRequest(...args) {
       return mockSignGenericRequest(...args);
+    }
+
+    async getSignatureInfo(...args) {
+      return mockGetSignatureInfo(...args);
+    }
+
+    async verifyHash(...args) {
+      return mockVerifyHash(...args);
     }
   }
 
@@ -34,6 +48,8 @@ const getServiceSignerConfigSpy = jest.spyOn(routeUtils, 'getServiceSignerConfig
   serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
 }));
 const signGenericRequestSpy = mockSignGenericRequest;
+const getSignatureInfoSpy = mockGetSignatureInfo;
+const verifyHashSpy = mockVerifyHash;
 
 const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = 'vrsc::request.txsigningtemplate';
 
@@ -77,6 +93,14 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
       serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
     }));
     signGenericRequestSpy.mockClear();
+    getSignatureInfoSpy.mockClear();
+    verifyHashSpy.mockClear();
+    getSignatureInfoSpy.mockImplementation(async () => ({
+      version: 1,
+      hashtype: 1,
+      height: 1
+    }));
+    verifyHashSpy.mockImplementation(async () => true);
   });
 
   test('rejects missing hextx', async () => {
@@ -182,6 +206,14 @@ describe('TxSigning request - Phase 2 serialization behavior', () => {
       serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
     }));
     signGenericRequestSpy.mockClear();
+    getSignatureInfoSpy.mockClear();
+    verifyHashSpy.mockClear();
+    getSignatureInfoSpy.mockImplementation(async () => ({
+      version: 1,
+      hashtype: 1,
+      height: 1
+    }));
+    verifyHashSpy.mockImplementation(async () => true);
   });
 
   test('valid payload produces a primitives generic deeplink', async () => {
@@ -259,6 +291,14 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
       serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
     }));
     signGenericRequestSpy.mockClear();
+    getSignatureInfoSpy.mockClear();
+    verifyHashSpy.mockClear();
+    getSignatureInfoSpy.mockImplementation(async () => ({
+      version: 1,
+      hashtype: 1,
+      height: 1
+    }));
+    verifyHashSpy.mockImplementation(async () => true);
   });
 
   test('signed=true invokes WIF signing via signGenericRequest with request + signer WIF', async () => {
@@ -273,6 +313,8 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     expect(res.statusCode).toBe(200);
     expect(getServiceSignerConfigSpy).toHaveBeenCalledTimes(1);
     expect(signGenericRequestSpy).toHaveBeenCalledTimes(1);
+    expect(getSignatureInfoSpy).toHaveBeenCalledTimes(1);
+    expect(verifyHashSpy).toHaveBeenCalledTimes(1);
 
     const signCall = signGenericRequestSpy.mock.calls[0];
     expect(signCall[0]).toBeTruthy();
@@ -325,6 +367,8 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     expect(res.statusCode).toBe(200);
     expect(signGenericRequestSpy).not.toHaveBeenCalled();
     expect(getServiceSignerConfigSpy).not.toHaveBeenCalled();
+    expect(getSignatureInfoSpy).not.toHaveBeenCalled();
+    expect(verifyHashSpy).not.toHaveBeenCalled();
   });
 
   test('signed requests return validation error when Service Signer WIF config is missing', async () => {
@@ -341,5 +385,17 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     expect(res.statusCode).toBe(400);
     expect(String(res.body.error || '').toLowerCase()).toContain('service_signer_wif');
     expect(signGenericRequestSpy).not.toHaveBeenCalled();
+  });
+
+  test('signed requests return clear error when local signature verification fails', async () => {
+    const handler = loadTxSigningHandler();
+    verifyHashSpy.mockImplementationOnce(async () => false);
+
+    const res = await callHandler(handler, createTxSigningPayload({
+      signed: true
+    }));
+
+    expect(res.statusCode).toBe(400);
+    expect(String(res.body.error || '').toLowerCase()).toContain('failed local identity verification');
   });
 });

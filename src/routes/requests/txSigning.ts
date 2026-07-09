@@ -177,6 +177,54 @@ function parseSigningIdentity(signingId: string): CompactIAddressObject {
   return CompactIAddressObject.fromAddress(signingId);
 }
 
+async function verifySignedRequestSignature(params: {
+  verusId: VerusIdInterface;
+  signedRequest: GenericRequest;
+  signingId: string;
+}): Promise<void> {
+  if (!params.signedRequest.signature?.signatureAsVch) {
+    throw new Error("Signed request did not include signature bytes.");
+  }
+
+  const getSignatureInfo = (params.verusId as any).getSignatureInfo;
+  const verifyHash = (params.verusId as any).verifyHash;
+  if (typeof getSignatureInfo !== "function" || typeof verifyHash !== "function") {
+    return;
+  }
+
+  const signatureBase64 = Buffer
+    .from(params.signedRequest.signature.signatureAsVch as unknown as Uint8Array)
+    .toString("base64");
+
+  const signatureInfo = await getSignatureInfo.call(
+    params.verusId,
+    params.signingId,
+    signatureBase64,
+    SYSTEM_ID_TESTNET
+  );
+
+  const signatureHeight = Number(signatureInfo?.height);
+  if (!Number.isFinite(signatureHeight) || signatureHeight <= 0) {
+    throw new Error("Could not determine signature block height for verification.");
+  }
+
+  const expectedHash = params.signedRequest.getDetailsIdentitySignatureHash(signatureHeight);
+  const isValid = await verifyHash.call(
+    params.verusId,
+    params.signingId,
+    signatureBase64,
+    expectedHash,
+    undefined,
+    SYSTEM_ID_TESTNET
+  );
+
+  if (!isValid) {
+    throw new ValidationError(
+      "Generated request signature failed local identity verification. Check SERVICE_SIGNER_WIF matches SERVICE_SIGNER_IADDRESS primary address set."
+    );
+  }
+}
+
 async function applyOptionalSignature(
   request: GenericRequest,
   input: ParsedTxSigningInput,
@@ -213,7 +261,14 @@ async function applyOptionalSignature(
   }
 
   const signedRequest = await signGenericRequest.call(verusId, request, serviceSignerWif) as GenericRequest | undefined;
-  return signedRequest ?? request;
+  const finalSignedRequest = signedRequest ?? request;
+  await verifySignedRequestSignature({
+    verusId,
+    signedRequest: finalSignedRequest,
+    signingId: input.signingId
+  });
+
+  return finalSignedRequest;
 }
 
 export async function generateTxSigningQr(req: Request, res: Response): Promise<void> {

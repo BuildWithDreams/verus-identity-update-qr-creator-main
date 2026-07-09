@@ -139,6 +139,8 @@ Signature verification follow-up (2026-07-09):
   - Signed tx-signing now normalizes to Service Signer identity for request metadata and signature identity.
   - Tx-signing UI no longer requires global Signing ID when signed mode is enabled.
   - Regression tests added/updated to assert normalized signer identity behavior.
+  - Added backend post-signature local verification (`getSignatureInfo` + `verifyHash`) before QR response.
+  - If verification fails, endpoint now returns clear 400 error indicating Service Signer WIF/identity mismatch.
 - Local live-smoke blocker:
   - Runtime on this workstation currently returns `SERVICE_SIGNER_WIF is required.` for signed endpoint calls until env/config is present.
 
