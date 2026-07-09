@@ -117,6 +117,45 @@ This avoids spreading version checks throughout endpoint code.
 
 ## TDD Workflow
 
+## Status / Progress
+
+Last updated: 2026-07-09
+
+Current phase position:
+
+- Phase 0: Completed
+- Phase 1: Completed
+- Phase 2: Completed
+- Phase 3: Completed
+- Phase 4: In progress (next pass)
+- Phase 5: Not started
+
+Completed implementation summary:
+
+- Added tx signing fixtures and invalid-case fixture helpers in `__tests__/fixtures.js`.
+- Added tx signing validation + serialization + signing-flow tests in `__tests__/txSigning.test.js`.
+- Added tx signing endpoint logic in `src/routes/requests/txSigning.ts`.
+- Wired route export and registration in:
+  - `src/routes/index.ts`
+  - `src/server.ts` (`/api/generate-tx-signing-qr`)
+- Added integration-style server route registration test in `__tests__/server.txSigningRoute.integration.test.js`.
+
+Verified behaviors currently green:
+
+- Strict validation for required fields and malformed payloads.
+- Fixed-point amount safety with integer satoshi normalization.
+- Primitives-backed GenericRequest deeplink generation and roundtrip parsing.
+- Testnet default behavior with explicit mainnet override support.
+- Optional `signed=true` branch that sets signature metadata and calls RPC signing helper.
+- Route registration coverage for `/api/generate-tx-signing-qr` (signed + unsigned path exercise).
+
+Phase 4 focus for next pass:
+
+- Refactor tx signing handler into smaller pure helpers where duplication exists.
+- Extract reusable fixed-point parsing/validation into shared utility only if reused by at least one additional request module.
+- Preserve current response contract and deeplink semantics.
+- Keep all tx signing tests and existing suites green after refactor.
+
 ## Phase 0: Baseline and fixture setup
 
 Create fixtures from the provided template sample:
