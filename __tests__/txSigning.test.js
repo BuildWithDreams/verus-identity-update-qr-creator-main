@@ -2,6 +2,12 @@ const {
   createTxSigningPayload,
   createTxSigningInvalidFixtures
 } = require('./fixtures');
+const {
+  GenericRequest,
+  VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING
+} = require('verus-typescript-primitives');
+
+const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = 'vrsc::request.txsigningtemplate';
 
 function createMockResponse() {
   return {
@@ -128,7 +134,74 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
     const handler = loadTxSigningHandler();
     const res = await callHandler(handler, createTxSigningPayload());
 
-    // This is intentionally expected to fail during red phase.
     expect(res.statusCode).toBe(200);
+  });
+});
+
+describe('TxSigning request - Phase 2 serialization behavior', () => {
+  test('valid payload produces a primitives generic deeplink', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload());
+
+    expect(res.statusCode).toBe(200);
+    expect(typeof res.body.deeplink).toBe('string');
+    expect(res.body.deeplink.startsWith('verus://1/')).toBe(true);
+  });
+
+  test('valid payload produces QR data URL', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload());
+
+    expect(res.statusCode).toBe(200);
+    expect(typeof res.body.qrDataUrl).toBe('string');
+    expect(res.body.qrDataUrl.startsWith('data:image/png;base64,')).toBe(true);
+  });
+
+  test('deeplink roundtrips via GenericRequest.fromWalletDeeplinkUri', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload());
+
+    expect(res.statusCode).toBe(200);
+
+    const parsed = GenericRequest.fromWalletDeeplinkUri(res.body.deeplink);
+    expect(parsed).toBeTruthy();
+    expect(Array.isArray(parsed.details)).toBe(true);
+    expect(parsed.details.length).toBe(1);
+
+    const detailJson = parsed.details[0].toJson();
+    expect(detailJson.type).toBe(VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING.toString());
+    expect(detailJson.vdxfkey).toBe(TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY);
+  });
+
+  test('serialized detail payload uses normalized integer satoshi values', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload());
+
+    expect(res.statusCode).toBe(200);
+
+    const parsed = GenericRequest.fromWalletDeeplinkUri(res.body.deeplink);
+    const detailJson = parsed.details[0].toJson();
+    const detailData = JSON.parse(Buffer.from(detailJson.data, 'hex').toString('utf-8'));
+
+    expect(typeof detailData.feeSats).toBe('string');
+    expect(detailData.feeSats).toBe('10000');
+    expect(typeof detailData.outputtotalsSats.iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq).toBe('string');
+    expect(detailData.outputtotalsSats.iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq).toBe('20000');
+    expect(detailData.outputtotalsSats.iRXKBVTVqEPyHrFsUbUW5ahDZRqCWGMTXd).toBe('100000000');
+  });
+
+  test('request defaults to testnet context unless explicitly disabled', async () => {
+    const handler = loadTxSigningHandler();
+    const testnetRes = await callHandler(handler, createTxSigningPayload());
+    const mainnetRes = await callHandler(handler, createTxSigningPayload({ isTestnet: false }));
+
+    expect(testnetRes.statusCode).toBe(200);
+    expect(mainnetRes.statusCode).toBe(200);
+
+    const parsedTestnet = GenericRequest.fromWalletDeeplinkUri(testnetRes.body.deeplink);
+    const parsedMainnet = GenericRequest.fromWalletDeeplinkUri(mainnetRes.body.deeplink);
+
+    expect(parsedTestnet.isTestnet()).toBe(true);
+    expect(parsedMainnet.isTestnet()).toBe(false);
   });
 });

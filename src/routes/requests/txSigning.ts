@@ -1,10 +1,17 @@
 import { Request, Response } from "express";
 import * as QRCode from "qrcode";
+import { BN } from "bn.js";
+import {
+  GenericRequest,
+  GeneralTypeOrdinalVDXFObject,
+  VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING
+} from "verus-typescript-primitives";
 import {
   ValidationError,
   requireString,
   parseJsonField,
-  RedirectInput
+  RedirectInput,
+  buildResponseUris
 } from "../utils";
 
 type GenerateTxSigningQrPayload = {
@@ -18,6 +25,7 @@ type GenerateTxSigningQrPayload = {
 };
 
 const SATOSHIS_PER_COIN = 100000000n;
+const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = "vrsc::request.txsigningtemplate";
 
 function parseFixedPointToSats(value: unknown, fieldName: string): bigint {
   const normalized = typeof value === "number"
@@ -88,6 +96,7 @@ export async function generateTxSigningQr(req: Request, res: Response): Promise<
     const payload = req.body as GenerateTxSigningQrPayload;
     const signed = payload.signed === true;
     const signingId = signed ? requireString(payload.signingId, "signingId") : undefined;
+    const isTestnet = payload.isTestnet !== false;
 
     const redirects = parseJsonField<RedirectInput[]>(
       payload.redirects,
@@ -106,10 +115,9 @@ export async function generateTxSigningQr(req: Request, res: Response): Promise<
       throw new ValidationError("feeamount must be greater than zero.");
     }
 
-    // Minimal tx-signing request envelope used until full primitive-specific integration is added.
     const requestPayload = {
       type: "tx-signing-template",
-      chain: payload.isTestnet === false ? "VRSC" : "VRSCTEST",
+      chain: isTestnet ? "VRSCTEST" : "VRSC",
       signed,
       signingId,
       hextx: txBytes.toString("hex"),
@@ -117,8 +125,20 @@ export async function generateTxSigningQr(req: Request, res: Response): Promise<
       feeSats: feeSats.toString()
     };
 
-    const encodedPayload = Buffer.from(JSON.stringify(requestPayload), "utf-8").toString("base64url");
-    const deeplink = `veruspay://txsign/${encodedPayload}`;
+    const txSigningDetail = new GeneralTypeOrdinalVDXFObject({
+      type: VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING,
+      key: TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY,
+      data: Buffer.from(JSON.stringify(requestPayload), "utf-8")
+    });
+
+    const request = new GenericRequest({
+      details: [txSigningDetail],
+      createdAt: new BN((Date.now() / 1000).toFixed(0)),
+      responseURIs: buildResponseUris(redirects),
+      flags: isTestnet ? GenericRequest.FLAG_IS_TESTNET : GenericRequest.BASE_FLAGS
+    });
+
+    const deeplink = request.toWalletDeeplinkUri();
 
     const qrDataUrl = await QRCode.toDataURL(deeplink, {
       errorCorrectionLevel: "M",
