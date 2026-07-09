@@ -18,6 +18,7 @@ const {
 } = require("../../config.js");
 
 export const SYSTEM_ID_TESTNET = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq";
+export const SYSTEM_ID_MAINNET = "i5w5MuNik5NtLcYmNzcvaoixooEebB6MGV"; // Update with mainnet system ID if different
 
 export type RedirectInput = {
   type?: string | number;
@@ -148,6 +149,7 @@ export function buildGenericRequestFromDetails(params: {
   signed: boolean;
   signingId?: string;
   redirects?: RedirectInput[];
+  requestId?: CompactIAddressObject;
 }, isTestnet: boolean ): primitives.GenericRequest {
   const responseURIs = buildResponseUris(params.redirects);
 
@@ -155,7 +157,8 @@ export function buildGenericRequestFromDetails(params: {
     details: params.details,
     createdAt: new BN((Date.now() / 1000).toFixed(0)),
     responseURIs,
-    flags: isTestnet ? primitives.GenericRequest.FLAG_IS_TESTNET : primitives.GenericRequest.BASE_FLAGS
+    flags: isTestnet ? primitives.GenericRequest.FLAG_IS_TESTNET : primitives.GenericRequest.BASE_FLAGS,
+    requestID: params?.requestId 
   });
 
   if (params.signed) {
@@ -169,19 +172,20 @@ export function buildGenericRequestFromDetails(params: {
         version: CompactAddressObject.DEFAULT_VERSION,
         type: CompactAddressObject.TYPE_FQN,
         address: params.signingId,
-        rootSystemName: "VRSCTEST"
+        rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
       });
     } else {
       identityID = CompactIAddressObject.fromAddress(params.signingId);
     }
     req.signature = new VerifiableSignatureData({
-      systemID: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET),
+      systemID: CompactIAddressObject.fromAddress(RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET),
       identityID
     });
     req.setSigned();
   }
-
-  req.setIsTestnet();
+  if (isTestnet) {
+    req.setIsTestnet();
+  }
   return req;
 }
 
@@ -194,7 +198,7 @@ export async function signRequest(params: {
   signingId: string;
 }): Promise<void> {
   const verusId = new VerusIdInterface(
-    SYSTEM_ID_TESTNET,
+    RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
     `http://${params.rpcHost}:${params.rpcPort}`,
     {
       auth: {

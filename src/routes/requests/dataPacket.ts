@@ -31,8 +31,13 @@ import {
   buildGenericRequestFromDetails,
   signRequest,
   getRpcConfig,
-  SYSTEM_ID_TESTNET
+  SYSTEM_ID_TESTNET,
+  SYSTEM_ID_MAINNET
 } from "../utils";
+
+const {
+  RPC_PORT
+} = require("../../../config.js");
 
 type GenerateDataPacketQrPayload = {
   signingId?: string;
@@ -369,7 +374,7 @@ export async function generateDataPacketQr(req: Request, res: Response): Promise
 
     // verifyGenericRequest
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       {
         auth: {
@@ -492,7 +497,7 @@ export async function signDataPacket(req: Request, res: Response): Promise<void>
 
     // Call signdata RPC
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       {
         auth: {
@@ -588,7 +593,7 @@ export async function listZAddresses(_req: Request, res: Response): Promise<void
   try {
     const { rpcHost, rpcPort, rpcUser, rpcPassword } = getRpcConfig();
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       { auth: { username: rpcUser, password: rpcPassword } }
     );
@@ -668,7 +673,7 @@ export async function createAttestation(req: Request, res: Response): Promise<vo
     });
 
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       { auth: { username: rpcUser, password: rpcPassword } }
     );
