@@ -7,6 +7,20 @@ const {
   VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING
 } = require('verus-typescript-primitives');
 
+const routeUtils = require('../src/routes/utils');
+const getRpcConfigSpy = jest.spyOn(routeUtils, 'getRpcConfig').mockImplementation(() => ({
+  rpcHost: '127.0.0.1',
+  rpcPort: 18843,
+  rpcUser: 'user',
+  rpcPassword: 'pass',
+  isTestnet: true
+}));
+const signRequestSpy = jest.spyOn(routeUtils, 'signRequest').mockImplementation(async ({ request }) => {
+  if (request && request.signature) {
+    request.signature.signatureAsVch = Buffer.from('deadbeef', 'hex');
+  }
+});
+
 const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = 'vrsc::request.txsigningtemplate';
 
 function createMockResponse() {
@@ -41,6 +55,11 @@ function loadTxSigningHandler() {
 
 describe('TxSigning request - Phase 1 validation (RED)', () => {
   const invalid = createTxSigningInvalidFixtures();
+
+  beforeEach(() => {
+    signRequestSpy.mockClear();
+    getRpcConfigSpy.mockClear();
+  });
 
   test('rejects missing hextx', async () => {
     const handler = loadTxSigningHandler();
@@ -139,6 +158,11 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
 });
 
 describe('TxSigning request - Phase 2 serialization behavior', () => {
+  beforeEach(() => {
+    signRequestSpy.mockClear();
+    getRpcConfigSpy.mockClear();
+  });
+
   test('valid payload produces a primitives generic deeplink', async () => {
     const handler = loadTxSigningHandler();
     const res = await callHandler(handler, createTxSigningPayload());
@@ -203,5 +227,59 @@ describe('TxSigning request - Phase 2 serialization behavior', () => {
 
     expect(parsedTestnet.isTestnet()).toBe(true);
     expect(parsedMainnet.isTestnet()).toBe(false);
+  });
+});
+
+describe('TxSigning request - signed envelope metadata/signature flow', () => {
+  beforeEach(() => {
+    signRequestSpy.mockClear();
+    getRpcConfigSpy.mockClear();
+  });
+
+  test('signed=true invokes RPC signing helper with request + signing identity', async () => {
+    const handler = loadTxSigningHandler();
+    const payload = createTxSigningPayload({
+      signed: true,
+      signingId: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+    });
+
+    const res = await callHandler(handler, payload);
+
+    expect(res.statusCode).toBe(200);
+    expect(getRpcConfigSpy).toHaveBeenCalledTimes(1);
+    expect(signRequestSpy).toHaveBeenCalledTimes(1);
+
+    const signCall = signRequestSpy.mock.calls[0][0];
+    expect(signCall.signingId).toBe(payload.signingId);
+    expect(signCall.request).toBeTruthy();
+    expect(signCall.request.isSigned()).toBe(true);
+    expect(signCall.request.signature).toBeTruthy();
+  });
+
+  test('signed deeplink parses as signed GenericRequest with signature metadata', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload({
+      signed: true,
+      signingId: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+    }));
+
+    expect(res.statusCode).toBe(200);
+
+    const parsed = GenericRequest.fromWalletDeeplinkUri(res.body.deeplink);
+    expect(parsed.isSigned()).toBe(true);
+    expect(parsed.signature).toBeTruthy();
+
+    const signatureJson = parsed.signature.toJson();
+    expect(signatureJson.identityid).toBeTruthy();
+    expect(signatureJson.systemid).toBeTruthy();
+  });
+
+  test('unsigned requests do not invoke RPC signing helper', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload({ signed: false }));
+
+    expect(res.statusCode).toBe(200);
+    expect(signRequestSpy).not.toHaveBeenCalled();
+    expect(getRpcConfigSpy).not.toHaveBeenCalled();
   });
 });

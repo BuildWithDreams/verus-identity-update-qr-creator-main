@@ -4,14 +4,20 @@ import { BN } from "bn.js";
 import {
   GenericRequest,
   GeneralTypeOrdinalVDXFObject,
-  VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING
+  VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING,
+  CompactAddressObject,
+  CompactIAddressObject,
+  VerifiableSignatureData
 } from "verus-typescript-primitives";
 import {
   ValidationError,
   requireString,
   parseJsonField,
   RedirectInput,
-  buildResponseUris
+  buildResponseUris,
+  getRpcConfig,
+  signRequest,
+  SYSTEM_ID_TESTNET
 } from "../utils";
 
 type GenerateTxSigningQrPayload = {
@@ -137,6 +143,37 @@ export async function generateTxSigningQr(req: Request, res: Response): Promise<
       responseURIs: buildResponseUris(redirects),
       flags: isTestnet ? GenericRequest.FLAG_IS_TESTNET : GenericRequest.BASE_FLAGS
     });
+
+    if (signed && signingId) {
+      const { rpcHost, rpcPort, rpcUser, rpcPassword } = getRpcConfig();
+
+      let identityID: CompactIAddressObject;
+      if (signingId.endsWith("@")) {
+        identityID = new CompactIAddressObject({
+          version: CompactAddressObject.DEFAULT_VERSION,
+          type: CompactAddressObject.TYPE_FQN,
+          address: signingId,
+          rootSystemName: "VRSCTEST"
+        });
+      } else {
+        identityID = CompactIAddressObject.fromAddress(signingId);
+      }
+
+      request.signature = new VerifiableSignatureData({
+        systemID: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET),
+        identityID
+      });
+      request.setSigned();
+
+      await signRequest({
+        request,
+        rpcHost,
+        rpcPort,
+        rpcUser,
+        rpcPassword,
+        signingId
+      });
+    }
 
     const deeplink = request.toWalletDeeplinkUri();
 
