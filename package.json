@@ -27,7 +27,7 @@
   },
   "resolutions": {
     "blake2b-wasm": "2.4.0",
-        "verus-typescript-primitives": "git+https://github.com/VerusCoin/verus-typescript-primitives.git#27e6c076def4416c20a568e31e4c406b10612807",
+    "verus-typescript-primitives": "git+https://github.com/VerusCoin/verus-typescript-primitives.git#27e6c076def4416c20a568e31e4c406b10612807",
     "verusd-rpc-ts-client": "git+https://github.com/VerusCoin/verusd-rpc-ts-client.git#fff4dd8bd94432cd050ec41c5535a1f0233e5178",
     "verusid-ts-client": "git+https://github.com/VerusCoin/verusid-ts-client.git#cc125b540224bcc29a3eae763c1057389df77534"
   },
@@ -39,5 +39,6 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
