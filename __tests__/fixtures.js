@@ -115,6 +115,48 @@ const createTestRequestedKeys = () => [
   VDXF_KEY_IDENTITY_EMAIL
 ];
 
+// ── Tx Signing Request fixtures ──
+
+const TX_SIGNING_VALID_TEMPLATE = {
+  outputtotals: {
+    iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq: 0.0002,
+    iRXKBVTVqEPyHrFsUbUW5ahDZRqCWGMTXd: 1.0
+  },
+  feeamount: 0.0001,
+  hextx: "0400008085202f890001204e000000000000971a040300010114cb8a0f7f651b484a81e2312c3438deb601e27368cc4c78040308010114cb8a0f7f651b484a81e2312c3438deb601e273684c5c01f1d9c9c1f8d5b89abc94e54a7680e5ffb6a74c93aed6c1008401a6ef9ea235635e328124ff3429db9f9e91b64e2d809b2004142f665ba5826cc5d1d660ba8a92792a8521aea009f1d9c9c1f8d5b89abc94e54a7680e5ffb6a74c937500000000a46211000000000000000000000000"
+};
+
+const createTxSigningPayload = (overrides = {}) => ({
+  ...TX_SIGNING_VALID_TEMPLATE,
+  ...overrides
+});
+
+const createTxSigningInvalidFixtures = () => ({
+  missingHexTx: createTxSigningPayload({ hextx: undefined }),
+  malformedHexTx: createTxSigningPayload({ hextx: "xyz-not-hex" }),
+  oddLengthHexTx: createTxSigningPayload({ hextx: "abc" }),
+  missingOutputTotals: createTxSigningPayload({ outputtotals: undefined }),
+  emptyOutputTotals: createTxSigningPayload({ outputtotals: {} }),
+  nonNumericOutput: createTxSigningPayload({
+    outputtotals: {
+      iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq: "not-a-number"
+    }
+  }),
+  negativeOutput: createTxSigningPayload({
+    outputtotals: {
+      iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq: -1
+    }
+  }),
+  invalidFeeAmount: createTxSigningPayload({ feeamount: -0.0001 }),
+  tooManyDecimalsOutput: createTxSigningPayload({
+    outputtotals: {
+      iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq: "0.123456789"
+    }
+  }),
+  tooManyDecimalsFee: createTxSigningPayload({ feeamount: "0.000000001" }),
+  signedWithoutSigningId: createTxSigningPayload({ signed: true, signingId: "" })
+});
+
 module.exports = {
   SYSTEM_ID_TESTNET,
   TEST_SIGNING_ID,
@@ -141,5 +183,9 @@ module.exports = {
   createUserDataRequestId,
   createSingleSearchDataKey,
   createMultipleSearchDataKeys,
-  createTestRequestedKeys
+  createTestRequestedKeys,
+  // Tx signing fixtures
+  TX_SIGNING_VALID_TEMPLATE,
+  createTxSigningPayload,
+  createTxSigningInvalidFixtures
 };
