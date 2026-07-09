@@ -164,6 +164,26 @@ function buildTxSigningRequest(input: ParsedTxSigningInput): GenericRequest {
   });
 }
 
+async function alignCreatedAtToChainTime(params: {
+  request: GenericRequest;
+  verusId: VerusIdInterface;
+}): Promise<void> {
+  const getCurrentHeight = (params.verusId as any).getCurrentHeight;
+  const getBlock = (params.verusId as any).interface?.getBlock;
+
+  if (typeof getCurrentHeight !== "function" || typeof getBlock !== "function") {
+    return;
+  }
+
+  const height = await getCurrentHeight.call(params.verusId);
+  const blockRes = await getBlock.call((params.verusId as any).interface, String(height));
+  const blockTime = Number(blockRes?.result?.time);
+
+  if (Number.isFinite(blockTime) && blockTime > 0) {
+    params.request.createdAt = new BN(Math.floor(blockTime).toString());
+  }
+}
+
 function parseSigningIdentity(signingId: string): CompactIAddressObject {
   if (signingId.endsWith("@")) {
     return new CompactIAddressObject({
@@ -259,6 +279,8 @@ async function applyOptionalSignature(
   if (typeof signGenericRequest !== "function") {
     throw new Error("signGenericRequest is not available in verusid-ts-client. Update the library version.");
   }
+
+  await alignCreatedAtToChainTime({ request, verusId });
 
   const signedRequest = await signGenericRequest.call(verusId, request, serviceSignerWif) as GenericRequest | undefined;
   const finalSignedRequest = signedRequest ?? request;

@@ -14,13 +14,17 @@ const mockGetSignatureInfo = jest.fn(async () => ({
   height: 1
 }));
 const mockVerifyHash = jest.fn(async () => true);
+const mockGetCurrentHeight = jest.fn(async () => 1);
+const mockGetBlock = jest.fn(async () => ({ result: { time: 1700000000 } }));
 
 jest.mock('verusid-ts-client', () => {
   const actual = jest.requireActual('verusid-ts-client');
 
   class MockVerusIdInterface {
     constructor() {
-      this.interface = {};
+      this.interface = {
+        getBlock: (...args) => mockGetBlock(...args)
+      };
     }
 
     async signGenericRequest(...args) {
@@ -33,6 +37,10 @@ jest.mock('verusid-ts-client', () => {
 
     async verifyHash(...args) {
       return mockVerifyHash(...args);
+    }
+
+    async getCurrentHeight(...args) {
+      return mockGetCurrentHeight(...args);
     }
   }
 
@@ -50,6 +58,8 @@ const getServiceSignerConfigSpy = jest.spyOn(routeUtils, 'getServiceSignerConfig
 const signGenericRequestSpy = mockSignGenericRequest;
 const getSignatureInfoSpy = mockGetSignatureInfo;
 const verifyHashSpy = mockVerifyHash;
+const getCurrentHeightSpy = mockGetCurrentHeight;
+const getBlockSpy = mockGetBlock;
 
 const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = 'vrsc::request.txsigningtemplate';
 
@@ -95,12 +105,16 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
     signGenericRequestSpy.mockClear();
     getSignatureInfoSpy.mockClear();
     verifyHashSpy.mockClear();
+    getCurrentHeightSpy.mockClear();
+    getBlockSpy.mockClear();
     getSignatureInfoSpy.mockImplementation(async () => ({
       version: 1,
       hashtype: 1,
       height: 1
     }));
     verifyHashSpy.mockImplementation(async () => true);
+    getCurrentHeightSpy.mockImplementation(async () => 1);
+    getBlockSpy.mockImplementation(async () => ({ result: { time: 1700000000 } }));
   });
 
   test('rejects missing hextx', async () => {
@@ -208,12 +222,16 @@ describe('TxSigning request - Phase 2 serialization behavior', () => {
     signGenericRequestSpy.mockClear();
     getSignatureInfoSpy.mockClear();
     verifyHashSpy.mockClear();
+    getCurrentHeightSpy.mockClear();
+    getBlockSpy.mockClear();
     getSignatureInfoSpy.mockImplementation(async () => ({
       version: 1,
       hashtype: 1,
       height: 1
     }));
     verifyHashSpy.mockImplementation(async () => true);
+    getCurrentHeightSpy.mockImplementation(async () => 1);
+    getBlockSpy.mockImplementation(async () => ({ result: { time: 1700000000 } }));
   });
 
   test('valid payload produces a primitives generic deeplink', async () => {
@@ -293,12 +311,16 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     signGenericRequestSpy.mockClear();
     getSignatureInfoSpy.mockClear();
     verifyHashSpy.mockClear();
+    getCurrentHeightSpy.mockClear();
+    getBlockSpy.mockClear();
     getSignatureInfoSpy.mockImplementation(async () => ({
       version: 1,
       hashtype: 1,
       height: 1
     }));
     verifyHashSpy.mockImplementation(async () => true);
+    getCurrentHeightSpy.mockImplementation(async () => 1);
+    getBlockSpy.mockImplementation(async () => ({ result: { time: 1700000000 } }));
   });
 
   test('signed=true invokes WIF signing via signGenericRequest with request + signer WIF', async () => {
@@ -358,6 +380,21 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     const detailData = JSON.parse(Buffer.from(detailJson.data, 'hex').toString('utf-8'));
 
     expect(detailData.signingId).toBe('iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq');
+  });
+
+  test('signed requests align createdAt to chain block time for wallet verification window', async () => {
+    const handler = loadTxSigningHandler();
+
+    const res = await callHandler(handler, createTxSigningPayload({
+      signed: true
+    }));
+
+    expect(res.statusCode).toBe(200);
+    expect(getCurrentHeightSpy).toHaveBeenCalledTimes(1);
+    expect(getBlockSpy).toHaveBeenCalledTimes(1);
+
+    const parsed = GenericRequest.fromWalletDeeplinkUri(res.body.deeplink);
+    expect(parsed.createdAt.toString()).toBe('1700000000');
   });
 
   test('unsigned requests do not invoke WIF signing helper', async () => {

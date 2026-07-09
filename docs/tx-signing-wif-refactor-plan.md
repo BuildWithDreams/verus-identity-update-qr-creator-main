@@ -141,6 +141,10 @@ Signature verification follow-up (2026-07-09):
   - Regression tests added/updated to assert normalized signer identity behavior.
   - Added backend post-signature local verification (`getSignatureInfo` + `verifyHash`) before QR response.
   - If verification fails, endpoint now returns clear 400 error indicating Service Signer WIF/identity mismatch.
+  - Added signed-request `createdAt` alignment to chain block time before signing to satisfy wallet `verifyGenericRequest` time-window checks.
+- Root cause details from wallet flow trace:
+  - Wallet throws `Failed to verify request signature` when `verifyGenericRequest(...)` returns false.
+  - Signature bytes can still be valid (`verifyHash(...) === true`) while generic verification fails due to `createdAt` vs signature-block-time drift beyond threshold.
 - Local live-smoke blocker:
   - Runtime on this workstation currently returns `SERVICE_SIGNER_WIF is required.` for signed endpoint calls until env/config is present.
 
