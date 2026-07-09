@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 import express = require("express");
 import { VerusIdInterface, primitives } from "verusid-ts-client";
-import { generateQr, generateServiceSignerQr, serviceSignerCallback, serviceSignerCallbackRedirect, serviceSignerStatus, generateAuthQr, generateInvoiceQr, generateAppEncryptionQr, generateDataPacketQr, signDataPacket, fetchAndHashUrl, listZAddresses, createAttestation, generateUserDataQr, createAttestationForTab, signAttestationPacket, generateAttestationQr } from "./routes";
+import { generateQr, generateServiceSignerQr, serviceSignerCallback, serviceSignerCallbackRedirect, serviceSignerStatus, generateAuthQr, generateInvoiceQr, generateAppEncryptionQr, generateDataPacketQr, signDataPacket, fetchAndHashUrl, listZAddresses, createAttestation, generateUserDataQr, createAttestationForTab, signAttestationPacket, generateAttestationQr, generateTxSigningQr } from "./routes";
 import {
   SYSTEM_ID_TESTNET,
   requireString,
@@ -298,6 +298,7 @@ app.post("/api/create-attestation-tab", createAttestationForTab);
 app.post("/api/sign-attestation-packet", signAttestationPacket);
 app.post("/api/generate-attestation-qr", generateAttestationQr);
 app.post("/api/generate-user-data-qr", generateUserDataQr);
+app.post("/api/generate-tx-signing-qr", generateTxSigningQr);
 
 const portEnv = process.env.UI_PORT ?? process.env.PORT;
 const port = portEnv ? parseNumber(portEnv, "UI_PORT") : 3000;

@@ -6,3 +6,4 @@ export { generateAppEncryptionQr } from "./requests/encryption";
 export { generateDataPacketQr, signDataPacket, fetchAndHashUrl, listZAddresses, createAttestation } from "./requests/dataPacket";
 export { generateUserDataQr } from "./requests/userData";
 export { createAttestationForTab, signAttestationPacket, generateAttestationQr } from "./requests/createAttestationTab";
+export { generateTxSigningQr } from "./requests/txSigning";
