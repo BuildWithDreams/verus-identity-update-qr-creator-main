@@ -1,0 +1,36 @@
+<aside class="split-reference">
+  <div class="ref-card">
+    <h3>Use Case</h3>
+    <p class="ref-desc">Wrap a sendcurrency transaction template into a wallet-scannable GenericRequest for user signing.</p>
+  </div>
+
+  <div class="ref-card">
+    <h3>hextx</h3>
+    <p class="ref-desc">Serialized raw transaction template from daemon output.</p>
+    <div class="ref-snippet">
+      <code>0400008085...0000</code>
+    </div>
+  </div>
+
+  <div class="ref-card">
+    <h3>outputtotals</h3>
+    <p class="ref-desc">Currency i-address to decimal amount map (up to 8 decimals).</p>
+    <div class="ref-snippet">
+<pre><code>{
+  "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq": 0.0002,
+  "iRXKBVTVqEPyHrFsUbUW5ahDZRqCWGMTXd": 1.0
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="ref-card">
+    <h3>Fee Amount</h3>
+    <p class="ref-desc">Decimal fee amount converted server-side to integer satoshis.</p>
+    <div class="ref-snippet"><code>0.0001</code></div>
+  </div>
+
+  <div class="ref-card">
+    <h3>Signed Mode</h3>
+    <p class="ref-desc">When enabled, the request includes signature metadata and uses RPC signing with the global Signing ID.</p>
+  </div>
+</aside>

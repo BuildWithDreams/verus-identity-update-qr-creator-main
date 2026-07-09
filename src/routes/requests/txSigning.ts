@@ -12,7 +12,7 @@ import {
 import {
   ValidationError,
   requireString,
-  parseJsonField,
+  parseRedirectsField,
   RedirectInput,
   buildResponseUris,
   getRpcConfig,
@@ -32,6 +32,16 @@ type GenerateTxSigningQrPayload = {
 
 const SATOSHIS_PER_COIN = 100000000n;
 const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = "vrsc::request.txsigningtemplate";
+
+type ParsedTxSigningInput = {
+  signed: boolean;
+  signingId?: string;
+  isTestnet: boolean;
+  redirects?: RedirectInput[];
+  txHex: string;
+  outputtotalsSats: Record<string, string>;
+  feeSats: string;
+};
 
 function parseFixedPointToSats(value: unknown, fieldName: string): bigint {
   const normalized = typeof value === "number"
@@ -97,83 +107,102 @@ function parseOutputTotals(value: unknown): Record<string, string> {
   return normalized;
 }
 
+function parseRedirects(value: unknown): RedirectInput[] | undefined {
+  return parseRedirectsField(value, "redirects");
+}
+
+function parseTxSigningInput(payload: GenerateTxSigningQrPayload): ParsedTxSigningInput {
+  const signed = payload.signed === true;
+  const signingId = signed ? requireString(payload.signingId, "signingId") : undefined;
+  const isTestnet = payload.isTestnet !== false;
+  const redirects = parseRedirects(payload.redirects);
+
+  const txHex = parseHexTransaction(payload.hextx).toString("hex");
+  const outputtotalsSats = parseOutputTotals(payload.outputtotals);
+  const feeSatsValue = parseFixedPointToSats(payload.feeamount, "feeamount");
+
+  if (feeSatsValue <= 0n) {
+    throw new ValidationError("feeamount must be greater than zero.");
+  }
+
+  return {
+    signed,
+    signingId,
+    isTestnet,
+    redirects,
+    txHex,
+    outputtotalsSats,
+    feeSats: feeSatsValue.toString()
+  };
+}
+
+function buildTxSigningRequest(input: ParsedTxSigningInput): GenericRequest {
+  const requestPayload = {
+    type: "tx-signing-template",
+    chain: input.isTestnet ? "VRSCTEST" : "VRSC",
+    signed: input.signed,
+    signingId: input.signingId,
+    hextx: input.txHex,
+    outputtotalsSats: input.outputtotalsSats,
+    feeSats: input.feeSats
+  };
+
+  const txSigningDetail = new GeneralTypeOrdinalVDXFObject({
+    type: VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING,
+    key: TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY,
+    data: Buffer.from(JSON.stringify(requestPayload), "utf-8")
+  });
+
+  return new GenericRequest({
+    details: [txSigningDetail],
+    createdAt: new BN((Date.now() / 1000).toFixed(0)),
+    responseURIs: buildResponseUris(input.redirects),
+    flags: input.isTestnet ? GenericRequest.FLAG_IS_TESTNET : GenericRequest.BASE_FLAGS
+  });
+}
+
+function parseSigningIdentity(signingId: string): CompactIAddressObject {
+  if (signingId.endsWith("@")) {
+    return new CompactIAddressObject({
+      version: CompactAddressObject.DEFAULT_VERSION,
+      type: CompactAddressObject.TYPE_FQN,
+      address: signingId,
+      rootSystemName: "VRSCTEST"
+    });
+  }
+
+  return CompactIAddressObject.fromAddress(signingId);
+}
+
+async function applyOptionalSignature(request: GenericRequest, input: ParsedTxSigningInput): Promise<void> {
+  if (!input.signed || !input.signingId) {
+    return;
+  }
+
+  const { rpcHost, rpcPort, rpcUser, rpcPassword } = getRpcConfig();
+  const identityID = parseSigningIdentity(input.signingId);
+
+  request.signature = new VerifiableSignatureData({
+    systemID: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET),
+    identityID
+  });
+  request.setSigned();
+
+  await signRequest({
+    request,
+    rpcHost,
+    rpcPort,
+    rpcUser,
+    rpcPassword,
+    signingId: input.signingId
+  });
+}
+
 export async function generateTxSigningQr(req: Request, res: Response): Promise<void> {
   try {
-    const payload = req.body as GenerateTxSigningQrPayload;
-    const signed = payload.signed === true;
-    const signingId = signed ? requireString(payload.signingId, "signingId") : undefined;
-    const isTestnet = payload.isTestnet !== false;
-
-    const redirects = parseJsonField<RedirectInput[]>(
-      payload.redirects,
-      "redirects",
-      false
-    );
-    if (redirects !== undefined && !Array.isArray(redirects)) {
-      throw new ValidationError("redirects must be a JSON array.");
-    }
-
-    const txBytes = parseHexTransaction(payload.hextx);
-    const outputtotalsSats = parseOutputTotals(payload.outputtotals);
-    const feeSats = parseFixedPointToSats(payload.feeamount, "feeamount");
-
-    if (feeSats <= 0n) {
-      throw new ValidationError("feeamount must be greater than zero.");
-    }
-
-    const requestPayload = {
-      type: "tx-signing-template",
-      chain: isTestnet ? "VRSCTEST" : "VRSC",
-      signed,
-      signingId,
-      hextx: txBytes.toString("hex"),
-      outputtotalsSats,
-      feeSats: feeSats.toString()
-    };
-
-    const txSigningDetail = new GeneralTypeOrdinalVDXFObject({
-      type: VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING,
-      key: TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY,
-      data: Buffer.from(JSON.stringify(requestPayload), "utf-8")
-    });
-
-    const request = new GenericRequest({
-      details: [txSigningDetail],
-      createdAt: new BN((Date.now() / 1000).toFixed(0)),
-      responseURIs: buildResponseUris(redirects),
-      flags: isTestnet ? GenericRequest.FLAG_IS_TESTNET : GenericRequest.BASE_FLAGS
-    });
-
-    if (signed && signingId) {
-      const { rpcHost, rpcPort, rpcUser, rpcPassword } = getRpcConfig();
-
-      let identityID: CompactIAddressObject;
-      if (signingId.endsWith("@")) {
-        identityID = new CompactIAddressObject({
-          version: CompactAddressObject.DEFAULT_VERSION,
-          type: CompactAddressObject.TYPE_FQN,
-          address: signingId,
-          rootSystemName: "VRSCTEST"
-        });
-      } else {
-        identityID = CompactIAddressObject.fromAddress(signingId);
-      }
-
-      request.signature = new VerifiableSignatureData({
-        systemID: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET),
-        identityID
-      });
-      request.setSigned();
-
-      await signRequest({
-        request,
-        rpcHost,
-        rpcPort,
-        rpcUser,
-        rpcPassword,
-        signingId
-      });
-    }
+    const input = parseTxSigningInput(req.body as GenerateTxSigningQrPayload);
+    const request = buildTxSigningRequest(input);
+    await applyOptionalSignature(request, input);
 
     const deeplink = request.toWalletDeeplinkUri();
 

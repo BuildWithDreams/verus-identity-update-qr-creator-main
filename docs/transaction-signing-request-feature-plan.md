@@ -127,8 +127,8 @@ Current phase position:
 - Phase 1: Completed
 - Phase 2: Completed
 - Phase 3: Completed
-- Phase 4: In progress (next pass)
-- Phase 5: Not started
+- Phase 4: Completed
+- Phase 5: In progress
 
 Completed implementation summary:
 
@@ -139,6 +139,18 @@ Completed implementation summary:
   - `src/routes/index.ts`
   - `src/server.ts` (`/api/generate-tx-signing-qr`)
 - Added integration-style server route registration test in `__tests__/server.txSigningRoute.integration.test.js`.
+- Completed Phase 4 refactor pass 1 in `src/routes/requests/txSigning.ts`:
+  - extracted pure helper functions for parsing/normalization
+  - extracted request construction helper
+  - extracted optional signing helper
+  - preserved endpoint contract and response shape
+- Completed Phase 4 refactor pass 2 with shared utility reuse:
+  - added `parseRedirectsField(...)` in `src/routes/utils.ts`
+  - adopted shared redirect parsing in:
+    - `src/routes/requests/txSigning.ts`
+    - `src/routes/requests/invoice.ts`
+    - `src/routes/requests/authentication.ts`
+  - removed duplicated redirect parsing/array validation blocks
 
 Verified behaviors currently green:
 
@@ -149,12 +161,11 @@ Verified behaviors currently green:
 - Optional `signed=true` branch that sets signature metadata and calls RPC signing helper.
 - Route registration coverage for `/api/generate-tx-signing-qr` (signed + unsigned path exercise).
 
-Phase 4 focus for next pass:
+Phase 4 exit criteria check:
 
-- Refactor tx signing handler into smaller pure helpers where duplication exists.
-- Extract reusable fixed-point parsing/validation into shared utility only if reused by at least one additional request module.
-- Preserve current response contract and deeplink semantics.
-- Keep all tx signing tests and existing suites green after refactor.
+- Refactor completed without changing tx signing response contract.
+- Shared redirect parsing utility adopted across multiple handlers.
+- Build and tx signing test suites remain green after refactor.
 
 ## Phase 0: Baseline and fixture setup
 
@@ -239,6 +250,7 @@ Add/maintain regression tests for any refactor-induced edge case.
   - supported chain mode (testnet vs mainnet mismatch)
   - expired template handling (if expiry already elapsed)
 4. Treat the checked-in fixture payload as unit-test-only data. For real mobile scan validation, always generate a fresh `sendcurrency` template from local daemon so `expiryheight` is in the future.
+5. Add and validate a dedicated UI tab for transaction signing request generation (form submission, QR/deeplink rendering, and signed/unsigned mode behavior).
 
 ## Test Matrix
 

@@ -1,0 +1,78 @@
+<section class="tab-panel" data-tab-panel="tx-signing" hidden>
+  <div class="split-layout">
+    <div class="split-inputs">
+      <form id="tx-signing-form">
+        <section class="card">
+          <h2>Transaction Signing Request</h2>
+          <p class="hint">Create a transaction-template signing request QR from a sendcurrency template payload.</p>
+
+          <label class="checkbox">
+            <input id="tx-signing-signed" type="checkbox" />
+            Sign this request via RPC
+            <span class="help" style="margin-left:8px;">When enabled, uses the global Signing ID and daemon signing flow.</span>
+          </label>
+
+          <label class="checkbox">
+            <input id="tx-signing-is-testnet" type="checkbox" checked />
+            Testnet
+          </label>
+        </section>
+
+        <section class="card">
+          <h2>Template Fields</h2>
+
+          <label>
+            Raw Transaction Hex (hextx) <span class="tag required">required</span>
+            <textarea id="tx-signing-hextx" rows="6" placeholder="Paste raw transaction hex from sendcurrency template output"></textarea>
+            <span class="help">Hex-only serialized transaction template. Inputs are added by wallet during signing.</span>
+          </label>
+
+          <label>
+            Output Totals JSON <span class="tag required">required</span>
+            <textarea id="tx-signing-outputtotals" rows="5">{
+  "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq": 0.0002,
+  "iRXKBVTVqEPyHrFsUbUW5ahDZRqCWGMTXd": 1.0
+}</textarea>
+            <span class="help">Currency i-address map to decimal amount values.</span>
+          </label>
+
+          <label>
+            Fee Amount <span class="tag required">required</span>
+            <input id="tx-signing-feeamount" type="text" value="0.0001" placeholder="e.g. 0.0001" />
+            <span class="help">Decimal fee amount (up to 8 decimals).</span>
+          </label>
+
+          <label>
+            Redirects JSON <span class="tag optional">optional</span>
+            <textarea id="tx-signing-redirects" rows="4">[]</textarea>
+            <span class="help">Array of redirect objects. Type "1" = redirect, "2" = POST callback.</span>
+          </label>
+        </section>
+
+        <div class="actions">
+          <button id="tx-signing-submit-button" type="submit">Generate QR</button>
+          <span id="tx-signing-status" class="status" aria-live="polite"></span>
+        </div>
+        <div id="tx-signing-error" class="error" hidden></div>
+      </form>
+
+      <section id="tx-signing-result" class="card" hidden>
+        <h2>Result</h2>
+        <div class="result-grid">
+          <div class="qr-wrapper">
+            <img id="tx-signing-qr-image" alt="QR Code" />
+          </div>
+          <div class="result-details">
+            <label>
+              Deeplink URI
+              <textarea id="tx-signing-deeplink" rows="6" readonly></textarea>
+            </label>
+            <button id="tx-signing-copy-button" type="button">Copy deeplink</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <%- include('./reference') %>
+  </div>
+</section>

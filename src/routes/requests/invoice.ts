@@ -14,7 +14,7 @@ import {
   ValidationError,
   RedirectInput,
   requireString,
-  parseJsonField,
+  parseRedirectsField,
   buildGenericRequestFromDetails,
   signRequest,
   getRpcConfig
@@ -136,14 +136,7 @@ export async function generateInvoiceQr(req: Request, res: Response): Promise<vo
 
     const requestedCurrencyId = requireString(payload.requestedCurrencyId, "requestedCurrencyId");
 
-    const redirects = parseJsonField<RedirectInput[]>(
-      payload.redirects,
-      "redirects",
-      false
-    );
-    if (redirects !== undefined && !Array.isArray(redirects)) {
-      throw new ValidationError("redirects must be a JSON array.");
-    }
+    const redirects = parseRedirectsField(payload.redirects, "redirects");
 
     // Parse accepted systems from comma-separated string
     let acceptedSystems: string[] | undefined;

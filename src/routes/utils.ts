@@ -116,6 +116,15 @@ export function parseJsonField<T>(value: unknown, fieldName: string, required: b
   return value as T;
 }
 
+export function parseRedirectsField(value: unknown, fieldName = "redirects"): RedirectInput[] | undefined {
+  const redirects = parseJsonField<RedirectInput[]>(value, fieldName, false);
+  if (redirects !== undefined && !Array.isArray(redirects)) {
+    throw new ValidationError(`${fieldName} must be a JSON array.`);
+  }
+
+  return redirects;
+}
+
 export function buildResponseUris(redirects?: RedirectInput[]): ResponseURI[] | undefined {
   if (!redirects || redirects.length === 0) return undefined;
 

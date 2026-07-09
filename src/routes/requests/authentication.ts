@@ -13,7 +13,7 @@ import {
   RedirectInput,
   requireString,
   parseOptionalPositiveNumber,
-  parseJsonField,
+  parseRedirectsField,
   buildGenericRequestFromDetails,
   signRequest,
   getRpcConfig
@@ -84,15 +84,7 @@ export async function generateAuthQr(req: Request, res: Response): Promise<void>
     const requestId = requireString(payload.requestId, "requestId");
     const expiryTime = parseOptionalPositiveNumber(payload.expiryTime, "expiryTime");
 
-    const redirects = parseJsonField<RedirectInput[]>(
-      payload.redirects,
-      "redirects",
-      false
-    );
-
-    if (redirects !== undefined && !Array.isArray(redirects)) {
-      throw new ValidationError("redirects must be a JSON array.");
-    }
+    const redirects = parseRedirectsField(payload.redirects, "redirects");
 
     const recipientConstraints = parseRecipientConstraints(
       payload.recipientConstraintType,

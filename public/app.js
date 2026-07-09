@@ -2523,6 +2523,125 @@
 
   };
 
+  // ── Tx Signing Form ────────────────────────────────────────────────
+
+  const setupTxSigningForm = () => {
+    const form = document.getElementById("tx-signing-form");
+    const statusEl = document.getElementById("tx-signing-status");
+    const errorEl = document.getElementById("tx-signing-error");
+    const resultEl = document.getElementById("tx-signing-result");
+    const qrImage = document.getElementById("tx-signing-qr-image");
+    const deeplinkEl = document.getElementById("tx-signing-deeplink");
+    const copyButton = document.getElementById("tx-signing-copy-button");
+    const submitButton = document.getElementById("tx-signing-submit-button");
+
+    if (
+      !form ||
+      !statusEl ||
+      !errorEl ||
+      !resultEl ||
+      !qrImage ||
+      !deeplinkEl ||
+      !copyButton ||
+      !submitButton
+    ) {
+      return;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearError(errorEl);
+      resultEl.hidden = true;
+      setStatus(statusEl, "Generating QR code...");
+      submitButton.disabled = true;
+
+      try {
+        const signed = isChecked("tx-signing-signed");
+        const isTestnet = isChecked("tx-signing-is-testnet");
+
+        let signingId;
+        if (signed) {
+          signingId = getGlobalSigningId();
+          if (!signingId) {
+            throw new Error("Signing ID is required when signed mode is enabled (set in the global header above).");
+          }
+        }
+
+        const hextxRaw = getInputValue("tx-signing-hextx");
+        const hextx = hextxRaw.replace(/\s+/g, "").trim();
+        if (!hextx) {
+          throw new Error("hextx is required.");
+        }
+
+        const outputtotals = parseJsonField(
+          getInputValue("tx-signing-outputtotals"),
+          "Output totals JSON",
+          true
+        );
+        if (!outputtotals || typeof outputtotals !== "object" || Array.isArray(outputtotals)) {
+          throw new Error("Output totals JSON must be an object.");
+        }
+
+        const feeamount = getInputValue("tx-signing-feeamount").trim();
+        if (!feeamount) {
+          throw new Error("Fee amount is required.");
+        }
+
+        const redirects = parseJsonField(
+          getInputValue("tx-signing-redirects"),
+          "Redirects JSON",
+          false
+        );
+
+        const payload = {
+          signed,
+          signingId: signingId || undefined,
+          isTestnet,
+          hextx,
+          outputtotals,
+          feeamount,
+          redirects
+        };
+
+        const response = await fetch("api/generate-tx-signing-qr", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to generate tx signing QR.");
+        }
+
+        qrImage.src = data.qrDataUrl;
+        qrImage.alt = "QR Code for transaction signing request";
+        deeplinkEl.value = data.deeplink;
+        resultEl.hidden = false;
+        setStatus(statusEl, "QR generated.");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unexpected error.";
+        showError(errorEl, message);
+        setStatus(statusEl, "");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    copyButton.addEventListener("click", async () => {
+      if (!deeplinkEl.value) return;
+      try {
+        await navigator.clipboard.writeText(deeplinkEl.value);
+        setStatus(statusEl, "Deeplink copied.");
+        setTimeout(() => setStatus(statusEl, ""), 2000);
+      } catch {
+        setStatus(statusEl, "Copy failed. Select and copy manually.");
+      }
+    });
+  };
+
   // ── Init ─────────────────────────────────────────────────────────────
 
   setupTabs();
@@ -2533,6 +2652,7 @@
   setupAppEncryptionForm();
   setupDataPacketForm();
   setupUserDataForm();
+  setupTxSigningForm();
   setupCreateAttestationForm();
   setupCopyButtons();
   wireGlobalSigningIdDropdown();
