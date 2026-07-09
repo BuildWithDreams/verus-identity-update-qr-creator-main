@@ -21,8 +21,13 @@ import {
   buildGenericRequestFromDetails,
   signRequest,
   getRpcConfig,
-  SYSTEM_ID_TESTNET
+  SYSTEM_ID_TESTNET,
+  SYSTEM_ID_MAINNET
 } from "../utils";
+
+const {
+  RPC_PORT
+} = require("../../../config.js");
 
 type GenerateAppEncryptionQrPayload = {
   signingId?: string;
@@ -73,7 +78,7 @@ function parseOptionalIAddress(value: unknown, fieldName: string): CompactIAddre
       version: CompactAddressObject.DEFAULT_VERSION,
       type: CompactAddressObject.TYPE_FQN,
       address: trimmed,
-      rootSystemName: "VRSCTEST"
+      rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
     });
   }
 
@@ -88,7 +93,7 @@ function parseOptionalIAddress(value: unknown, fieldName: string): CompactIAddre
     version: CompactAddressObject.DEFAULT_VERSION,
     type: CompactAddressObject.TYPE_I_ADDRESS,
     address: trimmed,
-    rootSystemName: "VRSCTEST"
+    rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
   });
 }
 
@@ -138,7 +143,7 @@ function buildAppEncryptionRequest(params: {
         version: CompactAddressObject.DEFAULT_VERSION,
         type: CompactAddressObject.TYPE_FQN,
         address: params.signingId,
-        rootSystemName: "VRSCTEST"
+        rootSystemName: RPC_PORT === 18843 ? "VRSCTEST" : "VRSC"
       });
     } else {
       authRequestID = CompactIAddressObject.fromAddress(params.signingId);
@@ -146,7 +151,7 @@ function buildAppEncryptionRequest(params: {
   }
   const systemConstraint = new RecipientConstraint({
     type: RecipientConstraint.REQUIRED_SYSTEM,
-    identity: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET)
+    identity: CompactIAddressObject.fromAddress(RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET)
   });
   const authDetails = new AuthenticationRequestDetails({
     requestID: authRequestID,
@@ -160,7 +165,8 @@ function buildAppEncryptionRequest(params: {
     ],
     signed: true,
     signingId: params.signingId,
-    redirects: params.redirects
+    redirects: params.redirects,
+    requestId: params.requestId
   }, params.isTestnet ?? false);
 }
 
@@ -208,7 +214,7 @@ export async function generateAppEncryptionQr(req: Request, res: Response): Prom
 
         // verifyGenericRequest
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       {
         auth: {

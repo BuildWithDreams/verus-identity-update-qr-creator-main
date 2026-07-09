@@ -13,6 +13,7 @@ const {
 // Test system and identity addresses (valid base58 Verus testnet addresses)
 // Using known valid Verus testnet i-addresses for testing
 const SYSTEM_ID_TESTNET = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq";
+const SYSTEM_ID_MAINNET = "i5w5MuNik5NtLcYmNzcvaoixooEebB6MGV"; 
 const TEST_SIGNING_ID = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"; // Valid testnet system ID
 const TEST_REQUEST_ID = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"; // Reuse valid testnet ID
 const TEST_RECIPIENT_ID = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"; // Reuse valid testnet ID
@@ -21,7 +22,7 @@ const TEST_RECIPIENT_ID = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"; // Reuse valid t
 const createTestSigningId = () => CompactIAddressObject.fromAddress(TEST_SIGNING_ID);
 const createTestRequestId = () => CompactIAddressObject.fromAddress(TEST_REQUEST_ID);
 const createTestRecipientId = () => CompactIAddressObject.fromAddress(TEST_RECIPIENT_ID);
-const createTestSystemId = () => CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET);
+const createTestSystemId = () => CompactIAddressObject.fromAddress(SYSTEM_ID_MAINNET);
 
 // Create sample VerifiableSignatureData
 const createTestSignatureData = () => new VerifiableSignatureData({
@@ -117,6 +118,7 @@ const createTestRequestedKeys = () => [
 
 module.exports = {
   SYSTEM_ID_TESTNET,
+  SYSTEM_ID_MAINNET,
   TEST_SIGNING_ID,
   TEST_REQUEST_ID,
   TEST_RECIPIENT_ID,

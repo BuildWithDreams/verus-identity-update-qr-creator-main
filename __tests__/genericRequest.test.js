@@ -18,7 +18,6 @@ const {
 const { VerusIdInterface } = require('verusid-ts-client');
 
 const {
-  SYSTEM_ID_TESTNET,
   createTestSigningId,
   createTestRequestId,
   createTestRecipientId,

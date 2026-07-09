@@ -5,6 +5,7 @@ import express = require("express");
 import { VerusIdInterface, primitives } from "verusid-ts-client";
 import { generateQr, generateServiceSignerQr, serviceSignerCallback, serviceSignerCallbackRedirect, serviceSignerStatus, generateAuthQr, generateInvoiceQr, generateAppEncryptionQr, generateDataPacketQr, signDataPacket, fetchAndHashUrl, listZAddresses, createAttestation, generateUserDataQr, createAttestationForTab, signAttestationPacket, generateAttestationQr } from "./routes";
 import {
+  SYSTEM_ID_MAINNET,
   SYSTEM_ID_TESTNET,
   requireString,
   parseNumber
@@ -59,7 +60,7 @@ app.get("/api/identities", async (_req, res) => {
     const rpcPassword = requireString(RPC_PASSWORD, "RPC_PASSWORD");
 
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+     RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       {
         auth: {
@@ -103,7 +104,7 @@ app.get("/api/currencies", async (_req, res) => {
     const rpcPassword = requireString(RPC_PASSWORD, "RPC_PASSWORD");
 
     const verusId = new VerusIdInterface(
-      SYSTEM_ID_TESTNET,
+      RPC_PORT === 18843 ? SYSTEM_ID_TESTNET : SYSTEM_ID_MAINNET,
       `http://${rpcHost}:${rpcPort}`,
       {
         auth: {
