@@ -130,6 +130,48 @@ Current phase position:
 - Phase 4: Completed
 - Phase 5: In progress
 
+Phase 5 execution notes (2026-07-09):
+
+- UI tab addition completed and manually exercised in browser:
+  - Opened new `Tx Signing` tab
+  - Unsigned flow generated QR + deeplink successfully
+  - Signed flow correctly required global Signing ID
+  - Signed flow reached RPC signing branch and surfaced daemon connectivity error when RPC host was unreachable
+- API smoke checks completed against `/api/generate-tx-signing-qr`:
+  - Unsigned request returned `deeplink` + `qrDataUrl` (200 path)
+  - Signed request returned expected RPC error when daemon was unreachable (500 path with RPC message)
+- Fresh template generation from daemon is currently blocked in this environment:
+  - `verus` CLI requires conf/bootstrap settings and daemon connectivity
+  - Explicit retry with temporary conf still failed due RPC host unreachable
+- Mobile scan verification is still pending until a fresh template can be generated from a reachable daemon.
+
+Phase 5 fresh-template rerun (2026-07-09, user-provided template):
+
+- Used user-provided fresh `sendcurrency ... true` template payload:
+  - `outputtotals`: DPNK + fee currency entries
+  - `feeamount`: `0.00010000`
+  - fresh `hextx` sample provided by user
+- API smoke rerun with fresh payload:
+  - Unsigned POST to `/api/generate-tx-signing-qr` succeeded and returned `deeplink` + `qrDataUrl`.
+  - Signed POST reached signing branch and returned expected RPC connectivity error (`EHOSTUNREACH`) due unavailable daemon from this workstation.
+- UI tab rerun with same fresh payload:
+  - Unsigned form submit generated QR + deeplink successfully.
+  - Signed form submit surfaced expected RPC signing connectivity error.
+
+Current Phase 5 state:
+
+- API/UI integration checks completed with fresh payload for unsigned mode.
+- Signed mode behavior validated up to RPC boundary (no-daemon environment).
+- Mobile wallet scan/acceptance testing still pending on device/network where daemon and wallet workflow are available.
+
+Mobile scan verification requirements (must-do before Phase 5 closeout):
+
+- Generate or provide a fresh `sendcurrency ... true` tx template from reachable local/remote daemon.
+- Use that fresh `hextx` payload for UI/API request generation. (Completed once with user-provided fresh payload.)
+- Scan with Verus Mobile in matching network mode.
+- Confirm payload acceptance and signing flow behavior.
+- Re-run with stale/expired fixture to confirm expected expiry rejection behavior.
+
 Completed implementation summary:
 
 - Added tx signing fixtures and invalid-case fixture helpers in `__tests__/fixtures.js`.
