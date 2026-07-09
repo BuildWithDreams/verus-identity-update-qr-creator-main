@@ -16,9 +16,10 @@ import {
   RedirectInput,
   buildResponseUris,
   getRpcConfig,
-  signRequest,
+  getServiceSignerConfig,
   SYSTEM_ID_TESTNET
 } from "../utils";
+import { VerusIdInterface } from "verusid-ts-client";
 
 type GenerateTxSigningQrPayload = {
   hextx?: unknown;
@@ -174,12 +175,13 @@ function parseSigningIdentity(signingId: string): CompactIAddressObject {
   return CompactIAddressObject.fromAddress(signingId);
 }
 
-async function applyOptionalSignature(request: GenericRequest, input: ParsedTxSigningInput): Promise<void> {
+async function applyOptionalSignature(request: GenericRequest, input: ParsedTxSigningInput): Promise<GenericRequest> {
   if (!input.signed || !input.signingId) {
-    return;
+    return request;
   }
 
   const { rpcHost, rpcPort, rpcUser, rpcPassword } = getRpcConfig();
+  const { serviceSignerWif } = getServiceSignerConfig();
   const identityID = parseSigningIdentity(input.signingId);
 
   request.signature = new VerifiableSignatureData({
@@ -188,23 +190,33 @@ async function applyOptionalSignature(request: GenericRequest, input: ParsedTxSi
   });
   request.setSigned();
 
-  await signRequest({
-    request,
-    rpcHost,
-    rpcPort,
-    rpcUser,
-    rpcPassword,
-    signingId: input.signingId
-  });
+  const verusId = new VerusIdInterface(
+    SYSTEM_ID_TESTNET,
+    `http://${rpcHost}:${rpcPort}`,
+    {
+      auth: {
+        username: rpcUser,
+        password: rpcPassword
+      }
+    }
+  );
+
+  const signGenericRequest = (verusId as any).signGenericRequest;
+  if (typeof signGenericRequest !== "function") {
+    throw new Error("signGenericRequest is not available in verusid-ts-client. Update the library version.");
+  }
+
+  const signedRequest = await signGenericRequest.call(verusId, request, serviceSignerWif) as GenericRequest | undefined;
+  return signedRequest ?? request;
 }
 
 export async function generateTxSigningQr(req: Request, res: Response): Promise<void> {
   try {
     const input = parseTxSigningInput(req.body as GenerateTxSigningQrPayload);
     const request = buildTxSigningRequest(input);
-    await applyOptionalSignature(request, input);
+    const finalRequest = await applyOptionalSignature(request, input);
 
-    const deeplink = request.toWalletDeeplinkUri();
+    const deeplink = finalRequest.toWalletDeeplinkUri();
 
     const qrDataUrl = await QRCode.toDataURL(deeplink, {
       errorCorrectionLevel: "M",

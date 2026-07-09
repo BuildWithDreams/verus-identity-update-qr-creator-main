@@ -113,11 +113,23 @@ Last updated: 2026-07-09
 Current status for this plan:
 
 - Planning: Completed
-- Implementation: Not started
-- Tests added for WIF refactor: Not started
-- Backend WIF signing refactor: Not started
-- UI signed-default update: Not started
-- Verification: Not started
+- Implementation: Completed
+- Tests added for WIF refactor: Completed
+- Backend WIF signing refactor: Completed
+- UI signed-default update: Completed
+- Verification: Completed (automated), mobile wallet acceptance pending environment
+
+Execution outcomes (2026-07-09):
+
+- Phase A complete: Added failing backend tests in `__tests__/txSigning.test.js` for WIF signing path and missing WIF config behavior.
+- Phase B complete: `src/routes/requests/txSigning.ts` now uses Service Signer WIF via `VerusIdInterface.signGenericRequest(...)` instead of RPC `signData` helper path.
+- Phase C complete: Added UI default regression tests in `__tests__/txSigning.uiDefaults.test.js`.
+- Phase D complete: `views/tabs/tx-signing/panel.ejs` now renders signed mode checked by default with updated helper text.
+- Phase E automated verification complete:
+  - `yarn build --pretty false` passed.
+  - `yarn test __tests__/txSigning.test.js --runInBand` passed.
+  - `yarn test __tests__/server.txSigningRoute.integration.test.js --runInBand` passed.
+  - `yarn test __tests__/txSigning.uiDefaults.test.js --runInBand` passed.
 
 Execution checklist:
 
@@ -128,6 +140,16 @@ Execution checklist:
 5. Run build and regression suites.
 6. Run manual API/UI verification and capture outcomes.
 7. Update docs status and closeout notes.
+
+Checklist completion (2026-07-09):
+
+1. Completed
+2. Completed
+3. Completed
+4. Completed
+5. Completed
+6. Partially completed (automated and local API/UI checks complete; mobile acceptance remains environment-dependent)
+7. Completed
 
 ## Risks and Mitigations
 

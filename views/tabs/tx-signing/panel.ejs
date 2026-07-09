@@ -7,9 +7,9 @@
           <p class="hint">Create a transaction-template signing request QR from a sendcurrency template payload.</p>
 
           <label class="checkbox">
-            <input id="tx-signing-signed" type="checkbox" />
-            Sign this request via RPC
-            <span class="help" style="margin-left:8px;">When enabled, uses the global Signing ID and daemon signing flow.</span>
+            <input id="tx-signing-signed" type="checkbox" checked />
+            Sign this request (recommended)
+            <span class="help" style="margin-left:8px;">Enabled by default. Uses Service Signer WIF flow with the global Signing ID as request signer identity.</span>
           </label>
 
           <label class="checkbox">

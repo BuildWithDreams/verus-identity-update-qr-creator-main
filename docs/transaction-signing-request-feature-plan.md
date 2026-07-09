@@ -161,7 +161,8 @@ Phase 5 fresh-template rerun (2026-07-09, user-provided template):
 Current Phase 5 state:
 
 - API/UI integration checks completed with fresh payload for unsigned mode.
-- Signed mode behavior validated up to RPC boundary (no-daemon environment).
+- Signed mode behavior moved to Service Signer WIF-based signing path and validated by backend regression tests.
+- Tx Signing tab now defaults to signed mode on first render, with opt-out still available.
 - Mobile wallet scan/acceptance testing still pending on device/network where daemon and wallet workflow are available.
 
 Mobile scan verification requirements (must-do before Phase 5 closeout):
@@ -200,8 +201,9 @@ Verified behaviors currently green:
 - Fixed-point amount safety with integer satoshi normalization.
 - Primitives-backed GenericRequest deeplink generation and roundtrip parsing.
 - Testnet default behavior with explicit mainnet override support.
-- Optional `signed=true` branch that sets signature metadata and calls RPC signing helper.
+- Optional `signed=true` branch that sets signature metadata and signs via Service Signer WIF using `signGenericRequest`.
 - Route registration coverage for `/api/generate-tx-signing-qr` (signed + unsigned path exercise).
+- UI regression coverage for signed-default behavior in tx-signing tab.
 
 Phase 4 exit criteria check:
 

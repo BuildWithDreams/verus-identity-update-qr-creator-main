@@ -7,19 +7,33 @@ const {
   VDXF_OBJECT_RESERVED_BYTE_VDXF_ID_STRING
 } = require('verus-typescript-primitives');
 
-const routeUtils = require('../src/routes/utils');
-const getRpcConfigSpy = jest.spyOn(routeUtils, 'getRpcConfig').mockImplementation(() => ({
-  rpcHost: '127.0.0.1',
-  rpcPort: 18843,
-  rpcUser: 'user',
-  rpcPassword: 'pass',
-  isTestnet: true
-}));
-const signRequestSpy = jest.spyOn(routeUtils, 'signRequest').mockImplementation(async ({ request }) => {
-  if (request && request.signature) {
-    request.signature.signatureAsVch = Buffer.from('deadbeef', 'hex');
+const mockSignGenericRequest = jest.fn(async (request) => request);
+
+jest.mock('verusid-ts-client', () => {
+  const actual = jest.requireActual('verusid-ts-client');
+
+  class MockVerusIdInterface {
+    constructor() {
+      this.interface = {};
+    }
+
+    async signGenericRequest(...args) {
+      return mockSignGenericRequest(...args);
+    }
   }
+
+  return {
+    ...actual,
+    VerusIdInterface: MockVerusIdInterface
+  };
 });
+
+const routeUtils = require('../src/routes/utils');
+const getServiceSignerConfigSpy = jest.spyOn(routeUtils, 'getServiceSignerConfig').mockImplementation(() => ({
+  serviceSignerWif: 'Uq6YMockSignerWifForTestsOnly',
+  serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+}));
+const signGenericRequestSpy = mockSignGenericRequest;
 
 const TX_SIGNING_TEMPLATE_VDXF_TEXT_KEY = 'vrsc::request.txsigningtemplate';
 
@@ -57,8 +71,12 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
   const invalid = createTxSigningInvalidFixtures();
 
   beforeEach(() => {
-    signRequestSpy.mockClear();
-    getRpcConfigSpy.mockClear();
+    getServiceSignerConfigSpy.mockReset();
+    getServiceSignerConfigSpy.mockImplementation(() => ({
+      serviceSignerWif: 'Uq6YMockSignerWifForTestsOnly',
+      serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+    }));
+    signGenericRequestSpy.mockClear();
   });
 
   test('rejects missing hextx', async () => {
@@ -159,8 +177,12 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
 
 describe('TxSigning request - Phase 2 serialization behavior', () => {
   beforeEach(() => {
-    signRequestSpy.mockClear();
-    getRpcConfigSpy.mockClear();
+    getServiceSignerConfigSpy.mockReset();
+    getServiceSignerConfigSpy.mockImplementation(() => ({
+      serviceSignerWif: 'Uq6YMockSignerWifForTestsOnly',
+      serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+    }));
+    signGenericRequestSpy.mockClear();
   });
 
   test('valid payload produces a primitives generic deeplink', async () => {
@@ -232,11 +254,15 @@ describe('TxSigning request - Phase 2 serialization behavior', () => {
 
 describe('TxSigning request - signed envelope metadata/signature flow', () => {
   beforeEach(() => {
-    signRequestSpy.mockClear();
-    getRpcConfigSpy.mockClear();
+    getServiceSignerConfigSpy.mockReset();
+    getServiceSignerConfigSpy.mockImplementation(() => ({
+      serviceSignerWif: 'Uq6YMockSignerWifForTestsOnly',
+      serviceSignerIAddress: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+    }));
+    signGenericRequestSpy.mockClear();
   });
 
-  test('signed=true invokes RPC signing helper with request + signing identity', async () => {
+  test('signed=true invokes WIF signing via signGenericRequest with request + signer WIF', async () => {
     const handler = loadTxSigningHandler();
     const payload = createTxSigningPayload({
       signed: true,
@@ -246,14 +272,14 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     const res = await callHandler(handler, payload);
 
     expect(res.statusCode).toBe(200);
-    expect(getRpcConfigSpy).toHaveBeenCalledTimes(1);
-    expect(signRequestSpy).toHaveBeenCalledTimes(1);
+    expect(getServiceSignerConfigSpy).toHaveBeenCalledTimes(1);
+    expect(signGenericRequestSpy).toHaveBeenCalledTimes(1);
 
-    const signCall = signRequestSpy.mock.calls[0][0];
-    expect(signCall.signingId).toBe(payload.signingId);
-    expect(signCall.request).toBeTruthy();
-    expect(signCall.request.isSigned()).toBe(true);
-    expect(signCall.request.signature).toBeTruthy();
+    const signCall = signGenericRequestSpy.mock.calls[0];
+    expect(signCall[0]).toBeTruthy();
+    expect(signCall[0].isSigned()).toBe(true);
+    expect(signCall[0].signature).toBeTruthy();
+    expect(signCall[1]).toBe('Uq6YMockSignerWifForTestsOnly');
   });
 
   test('signed deeplink parses as signed GenericRequest with signature metadata', async () => {
@@ -274,12 +300,28 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     expect(signatureJson.systemid).toBeTruthy();
   });
 
-  test('unsigned requests do not invoke RPC signing helper', async () => {
+  test('unsigned requests do not invoke WIF signing helper', async () => {
     const handler = loadTxSigningHandler();
     const res = await callHandler(handler, createTxSigningPayload({ signed: false }));
 
     expect(res.statusCode).toBe(200);
-    expect(signRequestSpy).not.toHaveBeenCalled();
-    expect(getRpcConfigSpy).not.toHaveBeenCalled();
+    expect(signGenericRequestSpy).not.toHaveBeenCalled();
+    expect(getServiceSignerConfigSpy).not.toHaveBeenCalled();
+  });
+
+  test('signed requests return validation error when Service Signer WIF config is missing', async () => {
+    const handler = loadTxSigningHandler();
+    getServiceSignerConfigSpy.mockImplementationOnce(() => {
+      throw new routeUtils.ValidationError('SERVICE_SIGNER_WIF is required.');
+    });
+
+    const res = await callHandler(handler, createTxSigningPayload({
+      signed: true,
+      signingId: 'iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq'
+    }));
+
+    expect(res.statusCode).toBe(400);
+    expect(String(res.body.error || '').toLowerCase()).toContain('service_signer_wif');
+    expect(signGenericRequestSpy).not.toHaveBeenCalled();
   });
 });
