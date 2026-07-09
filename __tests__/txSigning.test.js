@@ -143,12 +143,11 @@ describe('TxSigning request - Phase 1 validation (RED)', () => {
     expect(res.body.error.toLowerCase()).toContain('feeamount');
   });
 
-  test('requires signingId when signed is true', async () => {
+  test('signed mode no longer requires payload signingId when service signer config is present', async () => {
     const handler = loadTxSigningHandler();
     const res = await callHandler(handler, invalid.signedWithoutSigningId);
 
-    expect(res.statusCode).toBe(400);
-    expect(res.body.error.toLowerCase()).toContain('signingid');
+    expect(res.statusCode).toBe(200);
   });
 
   test('rejects output amount with more than 8 decimals', async () => {
@@ -280,6 +279,9 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     expect(signCall[0].isSigned()).toBe(true);
     expect(signCall[0].signature).toBeTruthy();
     expect(signCall[1]).toBe('Uq6YMockSignerWifForTestsOnly');
+
+    const signatureJson = signCall[0].signature.toJson();
+    expect(signatureJson.identityid.address).toBe('iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq');
   });
 
   test('signed deeplink parses as signed GenericRequest with signature metadata', async () => {
@@ -296,8 +298,24 @@ describe('TxSigning request - signed envelope metadata/signature flow', () => {
     expect(parsed.signature).toBeTruthy();
 
     const signatureJson = parsed.signature.toJson();
-    expect(signatureJson.identityid).toBeTruthy();
+    expect(signatureJson.identityid.address).toBe('iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq');
     expect(signatureJson.systemid).toBeTruthy();
+  });
+
+  test('signed request detail payload signingId is normalized to service signer identity', async () => {
+    const handler = loadTxSigningHandler();
+    const res = await callHandler(handler, createTxSigningPayload({
+      signed: true,
+      signingId: 'iRXKBVTVqEPyHrFsUbUW5ahDZRqCWGMTXd'
+    }));
+
+    expect(res.statusCode).toBe(200);
+
+    const parsed = GenericRequest.fromWalletDeeplinkUri(res.body.deeplink);
+    const detailJson = parsed.details[0].toJson();
+    const detailData = JSON.parse(Buffer.from(detailJson.data, 'hex').toString('utf-8'));
+
+    expect(detailData.signingId).toBe('iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq');
   });
 
   test('unsigned requests do not invoke WIF signing helper', async () => {

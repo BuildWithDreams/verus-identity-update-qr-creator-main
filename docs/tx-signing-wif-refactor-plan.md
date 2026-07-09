@@ -131,6 +131,17 @@ Execution outcomes (2026-07-09):
   - `yarn test __tests__/server.txSigningRoute.integration.test.js --runInBand` passed.
   - `yarn test __tests__/txSigning.uiDefaults.test.js --runInBand` passed.
 
+Signature verification follow-up (2026-07-09):
+
+- Root cause found for wallet error `failed to verify request signature`:
+  - Signed tx-signing requests could carry a signing identity different from the Service Signer WIF key used to sign.
+- Fix applied:
+  - Signed tx-signing now normalizes to Service Signer identity for request metadata and signature identity.
+  - Tx-signing UI no longer requires global Signing ID when signed mode is enabled.
+  - Regression tests added/updated to assert normalized signer identity behavior.
+- Local live-smoke blocker:
+  - Runtime on this workstation currently returns `SERVICE_SIGNER_WIF is required.` for signed endpoint calls until env/config is present.
+
 Execution checklist:
 
 1. Add failing backend tests for WIF-based signed path.

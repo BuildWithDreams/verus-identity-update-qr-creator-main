@@ -2559,14 +2559,6 @@
         const signed = isChecked("tx-signing-signed");
         const isTestnet = isChecked("tx-signing-is-testnet");
 
-        let signingId;
-        if (signed) {
-          signingId = getGlobalSigningId();
-          if (!signingId) {
-            throw new Error("Signing ID is required when signed mode is enabled (set in the global header above).");
-          }
-        }
-
         const hextxRaw = getInputValue("tx-signing-hextx");
         const hextx = hextxRaw.replace(/\s+/g, "").trim();
         if (!hextx) {
@@ -2595,7 +2587,6 @@
 
         const payload = {
           signed,
-          signingId: signingId || undefined,
           isTestnet,
           hextx,
           outputtotals,

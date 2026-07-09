@@ -114,7 +114,9 @@ function parseRedirects(value: unknown): RedirectInput[] | undefined {
 
 function parseTxSigningInput(payload: GenerateTxSigningQrPayload): ParsedTxSigningInput {
   const signed = payload.signed === true;
-  const signingId = signed ? requireString(payload.signingId, "signingId") : undefined;
+  const signingId = typeof payload.signingId === "string" && payload.signingId.trim().length > 0
+    ? payload.signingId.trim()
+    : undefined;
   const isTestnet = payload.isTestnet !== false;
   const redirects = parseRedirects(payload.redirects);
 
@@ -175,18 +177,22 @@ function parseSigningIdentity(signingId: string): CompactIAddressObject {
   return CompactIAddressObject.fromAddress(signingId);
 }
 
-async function applyOptionalSignature(request: GenericRequest, input: ParsedTxSigningInput): Promise<GenericRequest> {
+async function applyOptionalSignature(
+  request: GenericRequest,
+  input: ParsedTxSigningInput,
+  serviceSignerWifOverride?: string
+): Promise<GenericRequest> {
   if (!input.signed || !input.signingId) {
     return request;
   }
 
   const { rpcHost, rpcPort, rpcUser, rpcPassword } = getRpcConfig();
-  const { serviceSignerWif } = getServiceSignerConfig();
-  const identityID = parseSigningIdentity(input.signingId);
+  const serviceSignerWif = serviceSignerWifOverride ?? getServiceSignerConfig().serviceSignerWif;
+  const signerIdentity = parseSigningIdentity(input.signingId);
 
   request.signature = new VerifiableSignatureData({
     systemID: CompactIAddressObject.fromAddress(SYSTEM_ID_TESTNET),
-    identityID
+    identityID: signerIdentity
   });
   request.setSigned();
 
@@ -213,8 +219,19 @@ async function applyOptionalSignature(request: GenericRequest, input: ParsedTxSi
 export async function generateTxSigningQr(req: Request, res: Response): Promise<void> {
   try {
     const input = parseTxSigningInput(req.body as GenerateTxSigningQrPayload);
-    const request = buildTxSigningRequest(input);
-    const finalRequest = await applyOptionalSignature(request, input);
+    const serviceSignerConfig = input.signed ? getServiceSignerConfig() : undefined;
+    const normalizedInput = input.signed
+      ? {
+        ...input,
+        signingId: serviceSignerConfig?.serviceSignerIAddress
+      }
+      : input;
+    const request = buildTxSigningRequest(normalizedInput);
+    const finalRequest = await applyOptionalSignature(
+      request,
+      normalizedInput,
+      serviceSignerConfig?.serviceSignerWif
+    );
 
     const deeplink = finalRequest.toWalletDeeplinkUri();
 
